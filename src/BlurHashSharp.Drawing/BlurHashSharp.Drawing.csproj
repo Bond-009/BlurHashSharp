@@ -13,13 +13,9 @@
     <Version>1.0.0</Version>
     <PackageTags>BlurHash;image;bitmap;drawing</PackageTags>
     <Description>BlurHash encoder for use with the System.Drawing.Common image library.</Description>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Bond-009/BlurHashSharp</RepositoryUrl>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="..\LICENSE" Pack="true" PackagePath="$(PackageLicenseFile)"/>
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Drawing.Common" Version="4.7.0" />

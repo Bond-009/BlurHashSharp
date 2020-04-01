@@ -12,13 +12,9 @@
     <Version>1.0.0</Version>
     <PackageTags>BlurHash;image;bitmap;skiasharp</PackageTags>
     <Description>BlurHash encoder for use with the SkiaSharp image library.</Description>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Bond-009/BlurHashSharp</RepositoryUrl>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="..\LICENSE" Pack="true" PackagePath="$(PackageLicenseFile)"/>
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="SkiaSharp" Version="1.68.1" />
