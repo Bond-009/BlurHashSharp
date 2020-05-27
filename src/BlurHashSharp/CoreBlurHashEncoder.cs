@@ -150,7 +150,7 @@ namespace BlurHashSharp
                         }
                     }
 
-                    int factorOffset = ((yC * yComponents) + xC) * 3;
+                    int factorOffset = ((yC * xComponents) + xC) * 3;
                     float scale = (xC == 0 && yC == 0) ? dcScale : acScale;
                     factors[factorOffset] = c1 * scale;
                     factors[factorOffset + 1] = c2 * scale;
