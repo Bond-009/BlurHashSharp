@@ -9,7 +9,7 @@
 
   <PropertyGroup>
     <Authors>Bond_008</Authors>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <PackageTags>BlurHash;image;bitmap</PackageTags>
     <Description>BlurHash encoder for working with raw bitmaps in memory.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
