@@ -32,6 +32,9 @@ namespace BlurHashSharp.Benches
         public float MaxFAvx2() => CoreBlurHashEncoder.MaxFAvx2(_data);
 
         [Benchmark]
+        public float MaxFAvx1() => CoreBlurHashEncoder.MaxFAvx2(_data);
+
+        [Benchmark]
         public float MaxLinq() => _data.Select(MathF.Abs).Max();
     }
 }

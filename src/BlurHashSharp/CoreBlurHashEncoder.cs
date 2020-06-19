@@ -178,7 +178,7 @@ namespace BlurHashSharp
                 if (state.acCount > 0)
                 {
 #if NETCOREAPP3_1
-                    float actualMaximumValue = acLen > 15 && Avx2.IsSupported ? MaxFAvx2(ac) : MaxF(ac);
+                    float actualMaximumValue = acLen > 15 && Avx.IsSupported ? MaxFAvx(ac) : MaxF(ac);
 #else
                     float actualMaximumValue = MaxF(ac);
 #endif
@@ -262,6 +262,36 @@ namespace BlurHashSharp
                 maxVec = Avx.Max(maxVec, Avx.Permute(maxVec, 0b10110001));
                 maxVec = Avx.Max(maxVec, Avx.Permute(maxVec, 0b01001110));
                 maxVec = Avx.Max(maxVec, Vector256.AsSingle(Avx2.Permute4x64(Vector256.AsDouble(maxVec), 0b01001110)));
+
+                return maxVec.GetElement(0);
+            }
+        }
+
+        internal static unsafe float MaxFAvx(ReadOnlySpan<float> array)
+        {
+            int len = array.Length;
+            int stepSize = Vector256<float>.Count;
+
+            int rem = len % stepSize;
+            int fit = len - rem;
+            fixed (float* p = array)
+            {
+                Vector256<float> neg = Vector256.Create(-0.0f);
+                Vector256<float> maxVec = Avx.AndNot(neg, Avx.LoadVector256(p));
+
+                for (int i = stepSize; i < fit; i += stepSize)
+                {
+                    maxVec = Avx.Max(maxVec, Avx.AndNot(neg, Avx.LoadVector256(p + i)));
+                }
+
+                if (rem != 0)
+                {
+                    maxVec = Avx.Max(maxVec, Avx.AndNot(neg, Avx.LoadVector256(p + len - stepSize)));
+                }
+
+                maxVec = Avx.Max(maxVec, Avx.Permute2x128(maxVec, maxVec, 1));
+                maxVec = Avx.Max(maxVec, Avx.Permute(maxVec, 0b00001110));
+                maxVec = Avx.Max(maxVec, Avx.Permute(maxVec, 0b00000001));
 
                 return maxVec.GetElement(0);
             }
