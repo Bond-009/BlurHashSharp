@@ -282,3 +282,6 @@ $RECYCLE.BIN/
 
 # Extra
 docker-build
+
+# BenchmarkDotNet Artifacts
+BenchmarkDotNet.Artifacts
