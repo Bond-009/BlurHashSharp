@@ -1,4 +1,8 @@
 using System;
+#if NETCOREAPP
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace BlurHashSharp
 {
@@ -124,7 +128,6 @@ namespace BlurHashSharp
             float yCxPiDivH = 0f;
             for (int yC = 0; yC < yComponents; yC++, yCxPiDivH += piDivH)
             {
-
                 // pi / height * xC
                 float xCxPiDivW = 0f;
                 for (int xC = 0; xC < xComponents; xC++, xCxPiDivW += piDivW)
@@ -174,11 +177,11 @@ namespace BlurHashSharp
                 float maximumValue;
                 if (state.acCount > 0)
                 {
-                    float actualMaximumValue = 0;
-                    for (int i = 0; i < acLen; i++)
-                    {
-                        actualMaximumValue = MathF.Max(MathF.Abs(ac[i]), actualMaximumValue);
-                    }
+#if NETCOREAPP3_1
+                    float actualMaximumValue = acLen > 15 && Avx2.IsSupported ? MaxFAvx2(ac) : MaxF(ac);
+#else
+                    float actualMaximumValue = MaxF(ac);
+#endif
 
                     int quantisedMaximumValue = (int)MathF.Max(0f, MathF.Min(82f, MathF.Floor((actualMaximumValue * 166) - 0.5f)));
                     maximumValue = (quantisedMaximumValue + 1f) / 166f;
@@ -217,6 +220,54 @@ namespace BlurHashSharp
             });
         }
 
+        internal static float MaxF(ReadOnlySpan<float> array)
+        {
+            int len = array.Length;
+            float actualMaximumValue = MathF.Abs(array[0]);
+            for (int i = 1; i < len; i++)
+            {
+                var cur = MathF.Abs(array[i]);
+                if (cur > actualMaximumValue)
+                {
+                    actualMaximumValue = cur;
+                }
+            }
+
+            return actualMaximumValue;
+        }
+
+#if NETCOREAPP3_1
+        internal static unsafe float MaxFAvx2(ReadOnlySpan<float> array)
+        {
+            int len = array.Length;
+            int stepSize = Vector256<float>.Count;
+
+            int rem = len % stepSize;
+            int fit = len - rem;
+            fixed (float* p = array)
+            {
+                Vector256<float> neg = Vector256.Create(-0.0f);
+                Vector256<float> maxVec = Avx.AndNot(neg, Avx.LoadVector256(p));
+
+                for (int i = stepSize; i < fit; i += stepSize)
+                {
+                    maxVec = Avx.Max(maxVec, Avx.AndNot(neg, Avx.LoadVector256(p + i)));
+                }
+
+                if (rem != 0)
+                {
+                    maxVec = Avx.Max(maxVec, Avx.AndNot(neg, Avx.LoadVector256(p + len - stepSize)));
+                }
+
+                maxVec = Avx.Max(maxVec, Avx.Permute(maxVec, 0b10110001));
+                maxVec = Avx.Max(maxVec, Avx.Permute(maxVec, 0b01001110));
+                maxVec = Avx.Max(maxVec, Vector256.AsSingle(Avx2.Permute4x64(Vector256.AsDouble(maxVec), 0b01001110)));
+
+                return maxVec.GetElement(0);
+            }
+        }
+#endif
+
         internal static int LinearTosRGB(float value)
         {
             float v = MathF.Max(0, MathF.Min(1, value));
@@ -252,7 +303,7 @@ namespace BlurHashSharp
 
         internal static int EncodeBase83(int value, int length, Span<char> destination)
         {
-            const string characters = @"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~";
+            const string Characters = @"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~";
             int divisor = 1;
 
             int i = 0;
@@ -265,7 +316,7 @@ namespace BlurHashSharp
             {
                 int digit = (value / divisor) % 83;
                 divisor /= 83;
-                destination[i] = (char)characters[digit];
+                destination[i] = Characters[digit];
             }
 
             return length;

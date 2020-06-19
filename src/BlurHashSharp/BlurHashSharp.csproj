@@ -5,6 +5,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AllowUnsafeBlocks Condition=" '$(TargetFramework)' == 'netcoreapp3.1' ">true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -15,5 +16,11 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Bond-009/BlurHashSharp</RepositoryUrl>
   </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>BlurHashSharp.Benches</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 
 </Project>
