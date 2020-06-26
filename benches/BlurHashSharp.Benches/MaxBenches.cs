@@ -29,7 +29,7 @@ namespace BlurHashSharp.Benches
         public float MaxF() => CoreBlurHashEncoder.MaxF(_data);
 
         [Benchmark]
-        public float MaxFAvx2() => CoreBlurHashEncoder.MaxFAvx2(_data);
+        public float MaxFAvx() => CoreBlurHashEncoder.MaxFAvx(_data);
 
         [Benchmark]
         public float MaxLinq() => _data.Select(MathF.Abs).Max();
