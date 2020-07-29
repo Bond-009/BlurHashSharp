@@ -69,7 +69,13 @@ namespace BlurHashSharp.SkiaSharp
                     var scaledWidth = Convert.ToInt32(Math.Round(bitmap.Width * ratio));
                     var scaledHeight = Convert.ToInt32(Math.Round(bitmap.Height * ratio));
 
-                    using (SKBitmap scaledBitmap = bitmap.Resize(new SKImageInfo(scaledWidth, scaledHeight), SKFilterQuality.High))
+                    var newImageInfo = new SKImageInfo(
+                        scaledWidth,
+                        scaledHeight,
+                        bitmap.ColorType,
+                        bitmap.AlphaType,
+                        bitmap.ColorSpace);
+                    using (SKBitmap scaledBitmap = bitmap.Resize(newImageInfo, SKFilterQuality.High))
                     {
                         return EncodeInternal(xComponent, yComponent, scaledBitmap);
                     }
