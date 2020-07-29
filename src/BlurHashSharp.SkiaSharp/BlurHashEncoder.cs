@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using SkiaSharp;
 
@@ -42,6 +43,36 @@ namespace BlurHashSharp.SkiaSharp
                 using (SKBitmap bitmap = SKBitmap.Decode(codec, newInfo))
                 {
                     return EncodeInternal(xComponent, yComponent, bitmap);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Resizes the image and encodes the BlurHash representation of the image.
+        /// </summary>
+        /// <param name="xComponent">The number x components.</param>
+        /// <param name="yComponent">The number y components.</param>
+        /// <param name="filename">The path to an encoded image on the file system.</param>
+        /// <param name="maxWidth">The maximum width to resize the image to.</param>
+        /// <param name="maxHeight">The maximum height to resize the image to.</param>
+        /// <returns>BlurHash representation of the image.</returns>
+        public static string Encode(int xComponent, int yComponent, string filename, int maxWidth, int maxHeight)
+        {
+            using (SKCodec codec = SKCodec.Create(filename))
+            {
+                var newInfo = codec.Info.WithAlphaType(SKAlphaType.Unpremul).WithColorType(SKColorType.Rgba8888).WithColorSpace(SKColorSpace.CreateSrgb());
+                using (SKBitmap bitmap = SKBitmap.Decode(codec, newInfo))
+                {
+                    var ratioX = (double)maxWidth / bitmap.Width;
+                    var ratioY = (double)maxHeight / bitmap.Height;
+                    var ratio = Math.Min(ratioX, ratioY);
+                    var scaledWidth = Convert.ToInt32(Math.Round(bitmap.Width * ratio));
+                    var scaledHeight = Convert.ToInt32(Math.Round(bitmap.Height * ratio));
+
+                    using (SKBitmap scaledBitmap = bitmap.Resize(new SKImageInfo(scaledWidth, scaledHeight), SKFilterQuality.High))
+                    {
+                        return EncodeInternal(xComponent, yComponent, scaledBitmap);
+                    }
                 }
             }
         }
