@@ -54,11 +54,7 @@ namespace BlurHashSharp.Drawing
         {
             using (var bitmap = new Bitmap(filename))
             {
-                var ratioX = (double)maxWidth / bitmap.Width;
-                var ratioY = (double)maxHeight / bitmap.Height;
-                var ratio = Math.Min(ratioX, ratioY);
-                var scaledWidth = Convert.ToInt32(Math.Round(bitmap.Width * ratio));
-                var scaledHeight = Convert.ToInt32(Math.Round(bitmap.Height * ratio));
+                var (scaledWidth, scaledHeight) = Helpers.Scale(bitmap.Width, bitmap.Height, maxWidth, maxHeight);
 
                 using (var scaledBitmap = new Bitmap(bitmap, new Size(scaledWidth, scaledHeight)))
                 {
