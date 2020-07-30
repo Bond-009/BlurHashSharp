@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using SkiaSharp;
 
@@ -20,7 +19,15 @@ namespace BlurHashSharp.SkiaSharp
         {
             using (SKCodec codec = SKCodec.Create(stream))
             {
-                var newInfo = codec.Info.WithAlphaType(SKAlphaType.Unpremul).WithColorType(SKColorType.Rgba8888).WithColorSpace(SKColorSpace.CreateSrgb());
+                var newInfo = new SKImageInfo()
+                {
+                    Width = codec.Info.Width,
+                    Height = codec.Info.Height,
+                    ColorType = SKColorType.Rgba8888,
+                    AlphaType = SKAlphaType.Unpremul,
+                    ColorSpace = SKColorSpace.CreateSrgb()
+                };
+
                 using (SKBitmap bitmap = SKBitmap.Decode(codec, newInfo))
                 {
                     return EncodeInternal(xComponent, yComponent, bitmap);
@@ -39,7 +46,15 @@ namespace BlurHashSharp.SkiaSharp
         {
             using (SKCodec codec = SKCodec.Create(filename))
             {
-                var newInfo = codec.Info.WithAlphaType(SKAlphaType.Unpremul).WithColorType(SKColorType.Rgba8888).WithColorSpace(SKColorSpace.CreateSrgb());
+                var newInfo = new SKImageInfo()
+                {
+                    Width = codec.Info.Width,
+                    Height = codec.Info.Height,
+                    ColorType = SKColorType.Rgba8888,
+                    AlphaType = SKAlphaType.Unpremul,
+                    ColorSpace = SKColorSpace.CreateSrgb()
+                };
+
                 using (SKBitmap bitmap = SKBitmap.Decode(codec, newInfo))
                 {
                     return EncodeInternal(xComponent, yComponent, bitmap);
@@ -62,38 +77,36 @@ namespace BlurHashSharp.SkiaSharp
             {
                 var width = codec.Info.Width;
                 var height = codec.Info.Height;
-                var shouldResize = width > maxWidth || height > maxHeight;
-
-                if (shouldResize)
+                float scaleFactor = 0;
+                if (width > maxWidth || height > maxHeight)
                 {
-                    var scaleFactor = Helpers.GetScaleFactor(
-                        width,
-                        height,
-                        maxWidth,
-                        maxHeight);
+                    scaleFactor = ScaleHelper.GetScale(width, height, maxWidth, maxHeight);
                     SKSizeI supportedScale = codec.GetScaledDimensions(scaleFactor);
                     width = supportedScale.Width;
                     height = supportedScale.Height;
                 }
-                
-                var newImageInfo = codec.Info
-                    .WithAlphaType(SKAlphaType.Unpremul)
-                    .WithColorType(SKColorType.Rgba8888)
-                    .WithColorSpace(SKColorSpace.CreateSrgb())
-                    .WithSize(width, height);
 
-                using (SKBitmap bitmap = SKBitmap.Decode(codec, newImageInfo))
+                var newInfo = new SKImageInfo()
                 {
-                    if (!shouldResize)
+                    Width = width,
+                    Height = height,
+                    ColorType = SKColorType.Rgba8888,
+                    AlphaType = SKAlphaType.Unpremul,
+                    ColorSpace = SKColorSpace.CreateSrgb()
+                };
+
+                using (SKBitmap bitmap = SKBitmap.Decode(codec, newInfo))
+                {
+                    if (scaleFactor == 0)
                     {
                         return EncodeInternal(xComponent, yComponent, bitmap);
                     }
-                    
-                    var (scaledWidth, scaledHeight) = Helpers.Scale(bitmap.Width, bitmap.Height, maxWidth, maxHeight);
 
-                    newImageInfo = newImageInfo.WithSize(scaledWidth, scaledHeight);
-                    
-                    using (SKBitmap scaledBitmap = bitmap.Resize(newImageInfo, SKFilterQuality.Low))
+                    var (scaledWidth, scaledHeight) = ScaleHelper.GetScaleDimensions(bitmap.Width, bitmap.Height, scaleFactor);
+
+                    newInfo = newInfo.WithSize(scaledWidth, scaledHeight);
+
+                    using (SKBitmap scaledBitmap = bitmap.Resize(newInfo, SKFilterQuality.Low))
                     {
                         return EncodeInternal(xComponent, yComponent, scaledBitmap);
                     }

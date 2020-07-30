@@ -54,7 +54,7 @@ namespace BlurHashSharp.Drawing
         {
             using (var bitmap = new Bitmap(filename))
             {
-                var (scaledWidth, scaledHeight) = Helpers.Scale(bitmap.Width, bitmap.Height, maxWidth, maxHeight);
+                var (scaledWidth, scaledHeight) = ScaleHelper.GetScaleDimensions(bitmap.Width, bitmap.Height, maxWidth, maxHeight);
 
                 using (var scaledBitmap = new Bitmap(bitmap, new Size(scaledWidth, scaledHeight)))
                 {
@@ -79,7 +79,7 @@ namespace BlurHashSharp.Drawing
                 }
             }
         }
-        
+
         internal static unsafe string EncodeInternal(int xComponent, int yComponent, Bitmap bitmap, PixelFormat pixelFormat)
         {
             var width = bitmap.Width;
