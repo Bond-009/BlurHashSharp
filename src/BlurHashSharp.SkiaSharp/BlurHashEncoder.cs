@@ -62,8 +62,9 @@ namespace BlurHashSharp.SkiaSharp
             {
                 var width = codec.Info.Width;
                 var height = codec.Info.Height;
+                var shouldResize = width > maxWidth || height > maxHeight;
 
-                if (width > maxWidth || height > maxHeight)
+                if (shouldResize)
                 {
                     var scaleFactor = Helpers.GetScaleFactor(
                         codec.Info.Width,
@@ -83,7 +84,23 @@ namespace BlurHashSharp.SkiaSharp
 
                 using (SKBitmap bitmap = SKBitmap.Decode(codec, newInfo))
                 {
-                    return EncodeInternal(xComponent, yComponent, bitmap);
+                    if (!shouldResize)
+                    {
+                        return EncodeInternal(xComponent, yComponent, bitmap);
+                    }
+                    
+                    var (scaledWidth, scaledHeight) = Helpers.Scale(bitmap.Width, bitmap.Height, maxWidth, maxHeight);
+
+                    var newImageInfo = new SKImageInfo(
+                        scaledWidth,
+                        scaledHeight,
+                        bitmap.ColorType,
+                        bitmap.AlphaType,
+                        bitmap.ColorSpace);
+                    using (SKBitmap scaledBitmap = bitmap.Resize(newImageInfo, SKFilterQuality.High))
+                    {
+                        return EncodeInternal(xComponent, yComponent, scaledBitmap);
+                    }
                 }
             }
         }
