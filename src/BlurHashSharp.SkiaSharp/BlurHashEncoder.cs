@@ -76,13 +76,13 @@ namespace BlurHashSharp.SkiaSharp
                     height = supportedScale.Height;
                 }
                 
-                var newInfo = codec.Info
+                var newImageInfo = codec.Info
                     .WithAlphaType(SKAlphaType.Unpremul)
                     .WithColorType(SKColorType.Rgba8888)
                     .WithColorSpace(SKColorSpace.CreateSrgb())
                     .WithSize(width, height);
 
-                using (SKBitmap bitmap = SKBitmap.Decode(codec, newInfo))
+                using (SKBitmap bitmap = SKBitmap.Decode(codec, newImageInfo))
                 {
                     if (!shouldResize)
                     {
@@ -91,13 +91,9 @@ namespace BlurHashSharp.SkiaSharp
                     
                     var (scaledWidth, scaledHeight) = Helpers.Scale(bitmap.Width, bitmap.Height, maxWidth, maxHeight);
 
-                    var newImageInfo = new SKImageInfo(
-                        scaledWidth,
-                        scaledHeight,
-                        bitmap.ColorType,
-                        bitmap.AlphaType,
-                        bitmap.ColorSpace);
-                    using (SKBitmap scaledBitmap = bitmap.Resize(newImageInfo, SKFilterQuality.High))
+                    newImageInfo = newImageInfo.WithSize(scaledWidth, scaledHeight);
+                    
+                    using (SKBitmap scaledBitmap = bitmap.Resize(newImageInfo, SKFilterQuality.Low))
                     {
                         return EncodeInternal(xComponent, yComponent, scaledBitmap);
                     }

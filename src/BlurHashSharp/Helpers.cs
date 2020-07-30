@@ -39,7 +39,7 @@ namespace BlurHashSharp
             var ratioX = (float)maxWidth / width;
             var ratioY = (float)maxHeight / height;
 
-            return Math.Min(ratioX, ratioY);
+            return MathF.Min(ratioX, ratioY);
         }
     }
 }
