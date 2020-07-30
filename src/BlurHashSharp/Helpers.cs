@@ -25,5 +25,21 @@ namespace BlurHashSharp
 
             return (scaledWidth, scaledHeight);
         }
+        
+        /// <summary>
+        /// Calculates the smallest scale factor between actual image dimensions and the maximum dimensions.
+        /// </summary>
+        /// <param name="width">The original width.</param>
+        /// <param name="height">The original height.</param>
+        /// <param name="maxWidth">The maximum width.</param>
+        /// <param name="maxHeight">The maximum height.</param>
+        /// <returns>The smallest scale factor.</returns>
+        public static float GetScaleFactor(int width, int height, int maxWidth, int maxHeight)
+        {
+            var ratioX = (float)maxWidth / width;
+            var ratioY = (float)maxHeight / height;
+
+            return Math.Min(ratioX, ratioY);
+        }
     }
 }
