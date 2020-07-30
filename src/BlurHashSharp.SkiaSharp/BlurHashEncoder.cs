@@ -60,18 +60,26 @@ namespace BlurHashSharp.SkiaSharp
         {
             using (SKCodec codec = SKCodec.Create(filename))
             {
-                var scaleFactor = Helpers.GetScaleFactor(
-                    codec.Info.Width,
-                    codec.Info.Height,
-                    maxWidth,
-                    maxHeight);
-                SKSizeI supportedScale = codec.GetScaledDimensions(scaleFactor);
+                var width = codec.Info.Width;
+                var height = codec.Info.Height;
+
+                if (width > maxWidth || height > maxHeight)
+                {
+                    var scaleFactor = Helpers.GetScaleFactor(
+                        codec.Info.Width,
+                        codec.Info.Height,
+                        maxWidth,
+                        maxHeight);
+                    SKSizeI supportedScale = codec.GetScaledDimensions(scaleFactor);
+                    width = supportedScale.Width;
+                    height = supportedScale.Height;
+                }
                 
                 var newInfo = codec.Info
                     .WithAlphaType(SKAlphaType.Unpremul)
                     .WithColorType(SKColorType.Rgba8888)
                     .WithColorSpace(SKColorSpace.CreateSrgb())
-                    .WithSize(supportedScale.Width, supportedScale.Height);
+                    .WithSize(width, height);
 
                 using (SKBitmap bitmap = SKBitmap.Decode(codec, newInfo))
                 {
