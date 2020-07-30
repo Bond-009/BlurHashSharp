@@ -67,8 +67,8 @@ namespace BlurHashSharp.SkiaSharp
                 if (shouldResize)
                 {
                     var scaleFactor = Helpers.GetScaleFactor(
-                        codec.Info.Width,
-                        codec.Info.Height,
+                        width,
+                        height,
                         maxWidth,
                         maxHeight);
                     SKSizeI supportedScale = codec.GetScaledDimensions(scaleFactor);
