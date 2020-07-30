@@ -9,7 +9,7 @@
 
   <PropertyGroup>
     <Authors>Bond_008</Authors>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <PackageTags>BlurHash;image;bitmap;skiasharp</PackageTags>
     <Description>BlurHash encoder for use with the SkiaSharp image library.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
