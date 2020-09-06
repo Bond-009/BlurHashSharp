@@ -270,7 +270,7 @@ namespace BlurHashSharp
 
         internal static int LinearTosRGB(float value)
         {
-            float v = MathF.Max(0, MathF.Min(1, value));
+            float v = Math.Clamp(value, 0, 1);
             if (v <= 0.0031308f)
             {
                 return (int)((v * 12.92f * 255) + 0.5f);
@@ -291,9 +291,9 @@ namespace BlurHashSharp
 
         internal static int EncodeAC(float r, float g, float b, float maximumValue)
         {
-            int quantR = (int)MathF.Max(0, MathF.Min(18, MathF.Floor((SignPowF(r / maximumValue, 0.5f) * 9) + 9.5f)));
-            int quantG = (int)MathF.Max(0, MathF.Min(18, MathF.Floor((SignPowF(g / maximumValue, 0.5f) * 9) + 9.5f)));
-            int quantB = (int)MathF.Max(0, MathF.Min(18, MathF.Floor((SignPowF(b / maximumValue, 0.5f) * 9) + 9.5f)));
+            int quantR = Math.Clamp((int)MathF.Floor((SignPowF(r / maximumValue, 0.5f) * 9) + 9.5f), 0, 18);
+            int quantG = Math.Clamp((int)MathF.Floor((SignPowF(g / maximumValue, 0.5f) * 9) + 9.5f), 0, 18);
+            int quantB = Math.Clamp((int)MathF.Floor((SignPowF(b / maximumValue, 0.5f) * 9) + 9.5f), 0, 18);
 
             return (quantR * 19 * 19) + (quantG * 19) + quantB;
         }
