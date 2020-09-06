@@ -239,24 +239,24 @@ namespace BlurHashSharp
 #if NETCOREAPP3_1
         internal static unsafe float MaxFAvx(ReadOnlySpan<float> array)
         {
-            int len = array.Length;
-            int stepSize = Vector256<float>.Count;
+            const int StepSize = 8; // Vector256<float>.Count;
 
-            int rem = len % stepSize;
+            int len = array.Length;
+            int rem = len % StepSize;
             int fit = len - rem;
             fixed (float* p = array)
             {
                 Vector256<float> neg = Vector256.Create(-0.0f);
                 Vector256<float> maxVec = Avx.AndNot(neg, Avx.LoadVector256(p));
 
-                for (int i = stepSize; i < fit; i += stepSize)
+                for (int i = StepSize; i < fit; i += StepSize)
                 {
                     maxVec = Avx.Max(maxVec, Avx.AndNot(neg, Avx.LoadVector256(p + i)));
                 }
 
                 if (rem != 0)
                 {
-                    maxVec = Avx.Max(maxVec, Avx.AndNot(neg, Avx.LoadVector256(p + len - stepSize)));
+                    maxVec = Avx.Max(maxVec, Avx.AndNot(neg, Avx.LoadVector256(p + len - StepSize)));
                 }
 
                 maxVec = Avx.Max(maxVec, Avx.Permute2x128(maxVec, maxVec, 1));
