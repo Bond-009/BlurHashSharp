@@ -265,7 +265,7 @@ namespace BlurHashSharp
                 maxVec128 = Avx.Max(maxVec128, Avx.Permute(maxVec128, 0b00001110));
                 maxVec128 = Avx.Max(maxVec128, Avx.Permute(maxVec128, 0b00000001));
 
-                return maxVec.GetElement(0);
+                return maxVec128.GetElement(0);
             }
         }
 #endif
