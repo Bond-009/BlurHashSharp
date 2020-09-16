@@ -241,12 +241,14 @@ namespace BlurHashSharp
         {
             const int StepSize = 8; // Vector256<float>.Count;
 
+            // Constant used to get the absolute value of a Vector<float>
+            Vector256<float> neg = Vector256.Create(-0.0f);
+
             int len = array.Length;
             int rem = len % StepSize;
             int fit = len - rem;
             fixed (float* p = array)
             {
-                Vector256<float> neg = Vector256.Create(-0.0f);
                 Vector256<float> maxVec = Avx.AndNot(neg, Avx.LoadVector256(p));
 
                 for (int i = StepSize; i < fit; i += StepSize)
@@ -259,9 +261,9 @@ namespace BlurHashSharp
                     maxVec = Avx.Max(maxVec, Avx.AndNot(neg, Avx.LoadVector256(p + len - StepSize)));
                 }
 
-                maxVec = Avx.Max(maxVec, Avx.Permute2x128(maxVec, maxVec, 1));
-                maxVec = Avx.Max(maxVec, Avx.Permute(maxVec, 0b00001110));
-                maxVec = Avx.Max(maxVec, Avx.Permute(maxVec, 0b00000001));
+                Vector128<float> maxVec128 = Avx.Max(maxVec.GetLower(), maxVec.GetUpper());
+                maxVec128 = Avx.Max(maxVec128, Avx.Permute(maxVec128, 0b00001110));
+                maxVec128 = Avx.Max(maxVec128, Avx.Permute(maxVec128, 0b00000001));
 
                 return maxVec.GetElement(0);
             }
