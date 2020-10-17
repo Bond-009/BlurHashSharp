@@ -275,7 +275,7 @@ namespace BlurHashSharp
             float v = Math.Clamp(value, 0, 1);
             if (v <= 0.0031308f)
             {
-                return (int)((v * 12.92f * 255) + 0.5f);
+                return (int)((12.92f * 255 * v) + 0.5f);
             }
             else
             {
@@ -297,7 +297,7 @@ namespace BlurHashSharp
             int quantG = Math.Clamp((int)MathF.Floor((SignPowF(g / maximumValue, 0.5f) * 9) + 9.5f), 0, 18);
             int quantB = Math.Clamp((int)MathF.Floor((SignPowF(b / maximumValue, 0.5f) * 9) + 9.5f), 0, 18);
 
-            return (quantR * 19 * 19) + (quantG * 19) + quantB;
+            return (19 * 19 * quantR) + (19 * quantG) + quantB;
         }
 
         internal static float SignPowF(float value, float exp)
