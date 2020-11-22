@@ -177,8 +177,8 @@ namespace BlurHashSharp
                 {
                     float actualMaximumValue = acLen >= 8 && Avx.IsSupported ? MaxFAvx(ac) : MaxF(ac);
 
-                    int quantisedMaximumValue = (int)MathF.Max(0f, MathF.Min(82f, MathF.Floor((actualMaximumValue * 166) - 0.5f)));
-                    maximumValue = (quantisedMaximumValue + 1f) / 166f;
+                    int quantisedMaximumValue = Math.Clamp((int)((actualMaximumValue * 166f) - 0.5f), 0, 82);
+                    maximumValue = (quantisedMaximumValue + 1) / 166f;
                     hashPos += EncodeBase83(quantisedMaximumValue, 1, hash.Slice(hashPos));
                 }
                 else
