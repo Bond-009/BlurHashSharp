@@ -7,6 +7,7 @@ namespace BlurHashSharp.Drawing.Tests
     public class BlurHashEncoderTests
     {
         [Theory]
+        /* These don't exist anymore on samples.ffmpeg.org
         [InlineData("samples.ffmpeg.org/icons/text.gif", 4, 4, "UQM@=i^6PA-B.8rrWVM{NujFkCIU_NaKoft7")]
         [InlineData("samples.ffmpeg.org/icons/blank.gif", 4, 4, "UGNfG1?^fQ?^?vkCfQkCfQfQfQfQ?vkCfQkC")]
         [InlineData("samples.ffmpeg.org/icons/movie.gif", 4, 4, "UJGvFjD4TxU^tRRPj[oLD%Rj%Moft7RPofoL")]
@@ -16,6 +17,7 @@ namespace BlurHashSharp.Drawing.Tests
         [InlineData("samples.ffmpeg.org/icons/compressed.gif", 4, 4, "UTNwi;=KOrQ-yrWBxut,8vNa%~ui^Qi_H?n4")]
         [InlineData("samples.ffmpeg.org/icons/back.gif", 4, 4, "UmH:%H.S%#ozyD%gtRRP?^Mxozj[MdMxtRof")]
         [InlineData("samples.ffmpeg.org/icons/folder.gif", 4, 4, "U#N,Yi-UEj%2*JRjoJWqC8R-%1X9.8ozRjoe")]
+        */
         [InlineData("samples.ffmpeg.org/image-samples/personal_splash.png", 4, 4, "UgIE9-WnImRP01xaWBkBtfM{xbofR7X4bae:")]
         [InlineData("samples.ffmpeg.org/image-samples/delete_node_large.png", 4, 4, "UCL;mj%N?W~p?axsWEM}-,t6IbRn?bWEoct6")]
         [InlineData("samples.ffmpeg.org/image-samples/RedbrushAlpha.png", 4, 4, "UIAR-S+#B6AVwKfjJ8a{0}K0#.,@K3a#$jsV")]
