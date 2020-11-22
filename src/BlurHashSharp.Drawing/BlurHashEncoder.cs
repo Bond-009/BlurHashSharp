@@ -24,7 +24,8 @@ namespace BlurHashSharp.Drawing
                 {
                     return EncodeInternal(xComponent, yComponent, bitmap, PixelFormat.BGR888);
                 }
-                else if (bitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
+                else if (bitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppRgb
+                    || bitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
                 {
                     return EncodeInternal(xComponent, yComponent, bitmap, PixelFormat.BGR888x);
                 }
