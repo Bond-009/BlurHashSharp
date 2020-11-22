@@ -1,16 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1;netstandard2.1</TargetFrameworks>
+    <TargetFramework>net5.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <AllowUnsafeBlocks Condition=" '$(TargetFramework)' == 'netcoreapp3.1' ">true</AllowUnsafeBlocks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup>
     <Authors>Bond_009</Authors>
-    <Version>1.1.1</Version>
+    <Version>1.2</Version>
     <PackageTags>BlurHash;image;bitmap</PackageTags>
     <Description>BlurHash encoder for working with raw bitmaps in memory.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

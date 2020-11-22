@@ -1,8 +1,6 @@
 using System;
-#if NETCOREAPP
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 
 namespace BlurHashSharp
 {
@@ -177,11 +175,7 @@ namespace BlurHashSharp
                 float maximumValue;
                 if (state.acCount > 0)
                 {
-#if NETCOREAPP3_1
                     float actualMaximumValue = acLen >= 8 && Avx.IsSupported ? MaxFAvx(ac) : MaxF(ac);
-#else
-                    float actualMaximumValue = MaxF(ac);
-#endif
 
                     int quantisedMaximumValue = (int)MathF.Max(0f, MathF.Min(82f, MathF.Floor((actualMaximumValue * 166) - 0.5f)));
                     maximumValue = (quantisedMaximumValue + 1f) / 166f;
@@ -236,7 +230,6 @@ namespace BlurHashSharp
             return actualMaximumValue;
         }
 
-#if NETCOREAPP3_1
         internal static unsafe float MaxFAvx(ReadOnlySpan<float> array)
         {
             const int StepSize = 8; // Vector256<float>.Count;
@@ -268,7 +261,6 @@ namespace BlurHashSharp
                 return maxVec128.GetElement(0);
             }
         }
-#endif
 
         internal static int LinearTosRGB(float value)
         {
