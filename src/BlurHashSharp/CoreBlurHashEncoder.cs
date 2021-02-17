@@ -1,7 +1,4 @@
 using System;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-
 namespace BlurHashSharp
 {
     /// <summary>
@@ -175,7 +172,7 @@ namespace BlurHashSharp
                 float maximumValue;
                 if (state.acCount > 0)
                 {
-                    float actualMaximumValue = acLen >= 8 && Avx.IsSupported ? MaxFAvx(ac) : MaxF(ac);
+                    float actualMaximumValue = ac.AbsMax();
 
                     int quantisedMaximumValue = Math.Clamp((int)((actualMaximumValue * 166f) - 0.5f), 0, 82);
                     maximumValue = (quantisedMaximumValue + 1) / 166f;
@@ -212,54 +209,6 @@ namespace BlurHashSharp
                         break;
                 }
             });
-        }
-
-        internal static float MaxF(ReadOnlySpan<float> array)
-        {
-            int len = array.Length;
-            float actualMaximumValue = MathF.Abs(array[0]);
-            for (int i = 1; i < len; i++)
-            {
-                var cur = MathF.Abs(array[i]);
-                if (cur > actualMaximumValue)
-                {
-                    actualMaximumValue = cur;
-                }
-            }
-
-            return actualMaximumValue;
-        }
-
-        internal static unsafe float MaxFAvx(ReadOnlySpan<float> array)
-        {
-            const int StepSize = 8; // Vector256<float>.Count;
-
-            // Constant used to get the absolute value of a Vector<float>
-            Vector256<float> neg = Vector256.Create(-0.0f);
-
-            int len = array.Length;
-            int rem = len % StepSize;
-            int fit = len - rem;
-            fixed (float* p = array)
-            {
-                Vector256<float> maxVec = Avx.AndNot(neg, Avx.LoadVector256(p));
-
-                for (int i = StepSize; i < fit; i += StepSize)
-                {
-                    maxVec = Avx.Max(maxVec, Avx.AndNot(neg, Avx.LoadVector256(p + i)));
-                }
-
-                if (rem != 0)
-                {
-                    maxVec = Avx.Max(maxVec, Avx.AndNot(neg, Avx.LoadVector256(p + len - StepSize)));
-                }
-
-                Vector128<float> maxVec128 = Avx.Max(maxVec.GetLower(), maxVec.GetUpper());
-                maxVec128 = Avx.Max(maxVec128, Avx.Permute(maxVec128, 0b00001110));
-                maxVec128 = Avx.Max(maxVec128, Avx.Permute(maxVec128, 0b00000001));
-
-                return maxVec128.GetElement(0);
-            }
         }
 
         internal static int LinearTosRGB(float value)

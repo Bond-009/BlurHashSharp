@@ -11,7 +11,7 @@ namespace BlurHashSharp.Benches
     {
         private float[] _data;
 
-        [Params(8, 9, 13, 14, 15, 16, 17, 47, 100, 1000, 10000)]
+        [Params(3, 4, 8, 9, 13, 14, 15, 16, 17, 47, 100, 1000, 10000)]
         public int N { get; set; }
 
         [GlobalSetup]
@@ -26,10 +26,10 @@ namespace BlurHashSharp.Benches
         }
 
         [Benchmark]
-        public float MaxF() => CoreBlurHashEncoder.MaxF(_data);
+        public float MaxAbs() => AbsMaxExtensions.AbsMax(_data);
 
         [Benchmark]
-        public float MaxFAvx() => CoreBlurHashEncoder.MaxFAvx(_data);
+        public float MaxFallback() => AbsMaxExtensions.AbsMaxFallback(_data);
 
         [Benchmark]
         public float MaxLinq() => _data.Select(MathF.Abs).Max();
