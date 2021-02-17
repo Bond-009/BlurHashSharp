@@ -12,6 +12,7 @@ namespace BlurHashSharp.Tests
         [InlineData(9)]
         [InlineData(100)]
         [InlineData(128)]
+        [InlineData(1000)]
         [InlineData(1024)]
         public void AbsMax_EqualsAbsFallback(int n)
         {

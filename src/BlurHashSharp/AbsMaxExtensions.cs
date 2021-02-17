@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -10,12 +11,20 @@ namespace BlurHashSharp
         public static float AbsMax(this ReadOnlySpan<float> array)
         {
             int len = array.Length;
+            if (len < 4)
+            {
+                return array.AbsMaxFallback();
+            }
 
-            if (len >= 8 && Avx.IsSupported)
+            if (Avx.IsSupported)
             {
                 return array.AbsMaxAvx();
             }
-            else if (len >= 4 && AdvSimd.IsSupported)
+            else if (Sse.IsSupported)
+            {
+                return array.AbsMaxSse();
+            }
+            else if (AdvSimd.IsSupported)
             {
                 return array.AbsMaxAdvSimd();
             }
@@ -23,6 +32,7 @@ namespace BlurHashSharp
             return array.AbsMaxFallback();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static float AbsMaxFallback(this ReadOnlySpan<float> array)
         {
             int len = array.Length;
@@ -71,13 +81,44 @@ namespace BlurHashSharp
             }
         }
 
+        internal static unsafe float AbsMaxSse(this ReadOnlySpan<float> array)
+        {
+            const int StepSize = 4; // Vector128<float>.Count;
+
+            // Constant used to get the absolute value of a Vector<float>
+            Vector128<float> neg = Vector128.Create(-0.0f);
+
+            int len = array.Length;
+            int rem = len % StepSize;
+            int fit = len - rem;
+            fixed (float* p = array)
+            {
+                Vector128<float> maxVec = Sse.AndNot(neg, Sse.LoadVector128(p));
+
+                for (int i = StepSize; i < fit; i += StepSize)
+                {
+                    maxVec = Sse.Max(maxVec, Sse.AndNot(neg, Sse.LoadVector128(p + i)));
+                }
+
+                if (rem != 0)
+                {
+                    maxVec = Sse.Max(maxVec, Sse.AndNot(neg, Sse.LoadVector128(p + len - StepSize)));
+                }
+
+                maxVec = Sse.Max(maxVec, Sse.Shuffle(maxVec, maxVec, 0b00001110));
+                maxVec = Sse.Max(maxVec, Sse.Shuffle(maxVec, maxVec, 0b00000001));
+
+                return maxVec.GetElement(0);
+            }
+        }
+
         internal static unsafe float AbsMaxAdvSimd(this ReadOnlySpan<float> array)
         {
             const int StepSize = 4; // Vector128<float>.Count;
 
             // Constant used to get the absolute value of a Vector<float>
             Vector128<float> notNeg = Vector128.Create(0x7FFFFFFF).AsSingle();
-            //AdvSimd.Not(Vector128.Create(-0.0f));
+            // AdvSimd.Not(Vector128.Create(-0.0f));
 
             int len = array.Length;
             int rem = len % StepSize;

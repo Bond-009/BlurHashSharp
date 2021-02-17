@@ -11,7 +11,7 @@ namespace BlurHashSharp.Benches
     {
         private float[] _data;
 
-        [Params(3, 4, 8, 9, 13, 14, 15, 16, 17, 47, 100, 1000, 10000)]
+        [Params(8, 9, 15, 16, 17, 45, 47, 100, 1000)]
         public int N { get; set; }
 
         [GlobalSetup]
