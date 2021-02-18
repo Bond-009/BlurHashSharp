@@ -81,9 +81,9 @@ namespace BlurHashSharp.Tests
         [MemberData(nameof(TestArrays))]
         public void AbsMaxAdvSimd_Valid_AbsMax(float[] array, float expected)
         {
-            Skip.IfNot(AdvSimd.IsSupported);
+            Skip.IfNot(AdvSimd.Arm64.IsSupported);
 
-            Assert.Equal(expected, AbsMaxExtensions.AbsMaxAdvSimd(array));
+            Assert.Equal(expected, AbsMaxExtensions.AbsMaxAdvSimd64(array));
         }
     }
 }

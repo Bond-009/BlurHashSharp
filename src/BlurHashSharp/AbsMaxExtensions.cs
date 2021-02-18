@@ -25,9 +25,9 @@ namespace BlurHashSharp
             {
                 return array.AbsMaxSse();
             }
-            else if (AdvSimd.IsSupported)
+            else if (AdvSimd.Arm64.IsSupported)
             {
-                return array.AbsMaxAdvSimd();
+                return array.AbsMaxAdvSimd64();
             }
 
             return array.AbsMaxFallback();
@@ -117,36 +117,30 @@ namespace BlurHashSharp
             }
         }
 
-        internal static unsafe float AbsMaxAdvSimd(this ReadOnlySpan<float> array)
+        internal static unsafe float AbsMaxAdvSimd64(this ReadOnlySpan<float> array)
         {
             const int StepSize = 4; // Vector128<float>.Count;
 
             Debug.Assert(array.Length >= StepSize, "Input can't be smaller than the vector size.");
-
-            // Constant used to get the absolute value of a Vector<float>
-            Vector128<float> notNeg = Vector128.Create(0x7FFFFFFF).AsSingle();
-            // AdvSimd.Not(Vector128.Create(-0.0f));
 
             int len = array.Length;
             int rem = len % StepSize;
             int fit = len - rem;
             fixed (float* p = array)
             {
-                Vector128<float> maxVec = AdvSimd.And(notNeg, AdvSimd.LoadVector128(p));
+                Vector128<float> maxVec = AdvSimd.Abs(AdvSimd.LoadVector128(p));
 
                 for (int i = StepSize; i < fit; i += StepSize)
                 {
-                    maxVec = AdvSimd.Max(maxVec, AdvSimd.And(notNeg, AdvSimd.LoadVector128(p + i)));
+                    maxVec = AdvSimd.Max(maxVec, AdvSimd.Abs(AdvSimd.LoadVector128(p + i)));
                 }
 
                 if (rem != 0)
                 {
-                    maxVec = AdvSimd.Max(maxVec, AdvSimd.And(notNeg, AdvSimd.LoadVector128(p + len - StepSize)));
+                    maxVec = AdvSimd.Max(maxVec, AdvSimd.Abs(AdvSimd.LoadVector128(p + len - StepSize)));
                 }
 
-                Vector64<float> maxVec64 = AdvSimd.Max(maxVec.GetLower(), maxVec.GetUpper());
-
-                return MathF.Max(maxVec64.GetElement(0), maxVec64.GetElement(1));
+                return AdvSimd.Arm64.MaxAcross(maxVec).ToScalar();
             }
         }
     }
