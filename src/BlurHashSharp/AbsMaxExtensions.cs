@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using System.Diagnostics;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -11,7 +12,7 @@ namespace BlurHashSharp
         public static float AbsMax(this ReadOnlySpan<float> array)
         {
             int len = array.Length;
-            if (len < 4)
+            if (len < 8)
             {
                 return array.AbsMaxFallback();
             }
@@ -53,6 +54,8 @@ namespace BlurHashSharp
         {
             const int StepSize = 8; // Vector256<float>.Count;
 
+            Debug.Assert(array.Length >= StepSize, "Input can't be smaller than the vector size.");
+
             // Constant used to get the absolute value of a Vector<float>
             Vector256<float> neg = Vector256.Create(-0.0f);
 
@@ -85,6 +88,8 @@ namespace BlurHashSharp
         {
             const int StepSize = 4; // Vector128<float>.Count;
 
+            Debug.Assert(array.Length >= StepSize, "Input can't be smaller than the vector size.");
+
             // Constant used to get the absolute value of a Vector<float>
             Vector128<float> neg = Vector128.Create(-0.0f);
 
@@ -115,6 +120,8 @@ namespace BlurHashSharp
         internal static unsafe float AbsMaxAdvSimd(this ReadOnlySpan<float> array)
         {
             const int StepSize = 4; // Vector128<float>.Count;
+
+            Debug.Assert(array.Length >= StepSize, "Input can't be smaller than the vector size.");
 
             // Constant used to get the absolute value of a Vector<float>
             Vector128<float> notNeg = Vector128.Create(0x7FFFFFFF).AsSingle();
