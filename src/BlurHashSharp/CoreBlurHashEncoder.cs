@@ -1,4 +1,6 @@
 using System;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace BlurHashSharp
 {
@@ -100,7 +102,8 @@ namespace BlurHashSharp
 
             int totalComponents = xComponents * yComponents;
             int factorsLen = totalComponents * 3;
-            float[] factors = new float[factorsLen];
+
+            float[] factors = new float[factorsLen + 1];
 
             int bytesPerPixel = pixelFormat switch
             {
@@ -111,58 +114,15 @@ namespace BlurHashSharp
                 _ => ThrowPixelFormatArgumentException()
             };
 
-            Span<float> cosLookup = stackalloc float[width];
-            ReadOnlySpan<float> lookUp = _sRGBToLinearLookup;
-
-            int totalPixels = width * height;
-            float dcScale = 1f / totalPixels;
-            float acScale = 2f / totalPixels;
-
-            float piDivH = MathF.PI / height;
-            float piDivW = MathF.PI / width;
-
-            // pi / width * yC
-            float yCxPiDivH = 0f;
-            for (int yC = 0; yC < yComponents; yC++, yCxPiDivH += piDivH)
-            {
-                // pi / height * xC
-                float xCxPiDivW = 0f;
-                for (int xC = 0; xC < xComponents; xC++, xCxPiDivW += piDivW)
-                {
-                    // Precompute cosine values for every pixel in row
-                    // pi / height * xC * x
-                    float xCoef = 0;
-                    for (int i = 0; i < width; i++, xCoef += xCxPiDivW)
-                    {
-                        cosLookup[i] = MathF.Cos(xCoef);
-                    }
-
-                    float c1 = 0;
-                    float c2 = 0;
-                    float c3 = 0;
-
-                    // pi / width * yC * y
-                    float yCoef = 0;
-                    for (int y = 0, yOffset = 0; y < height; y++, yOffset += bytesPerRow, yCoef += yCxPiDivH)
-                    {
-                        float yBasis = MathF.Cos(yCoef);
-
-                        for (int x = 0, offset = yOffset; x < width; x++, offset += bytesPerPixel)
-                        {
-                            float basis = cosLookup[x] * yBasis;
-                            c1 += basis * lookUp[pixels[offset]];
-                            c2 += basis * lookUp[pixels[offset + 1]];
-                            c3 += basis * lookUp[pixels[offset + 2]];
-                        }
-                    }
-
-                    int factorOffset = ((yC * xComponents) + xC) * 3;
-                    float scale = (xC == 0 && yC == 0) ? dcScale : acScale;
-                    factors[factorOffset] = c1 * scale;
-                    factors[factorOffset + 1] = c2 * scale;
-                    factors[factorOffset + 2] = c3 * scale;
-                }
-            }
+            ComputeFactors(
+                factors,
+                xComponents,
+                yComponents,
+                width,
+                height,
+                pixels,
+                bytesPerRow,
+                bytesPerPixel);
 
             int acCount = totalComponents - 1;
             int hashLen = 1 + 1 + 4 + (acCount * 2);
@@ -173,7 +133,7 @@ namespace BlurHashSharp
                 (hash, state) =>
             {
                 ReadOnlySpan<float> dc = factors.AsSpan(0, 3);
-                ReadOnlySpan<float> ac = factors.AsSpan(3);
+                ReadOnlySpan<float> ac = factors.AsSpan(3, factorsLen - 3);
                 int acLen = ac.Length;
 
                 int hashPos = EncodeBase83(xComponents - 1 + ((yComponents - 1) * 9), 1, hash);
@@ -217,6 +177,162 @@ namespace BlurHashSharp
                         break;
                 }
             });
+        }
+
+        internal static void ComputeFactors(
+            Span<float> factors,
+            int xComponents,
+            int yComponents,
+            int width,
+            int height,
+            ReadOnlySpan<byte> pixels,
+            int bytesPerRow,
+            int bytesPerPixel)
+        {
+            if ((bytesPerPixel == 4 || bytesPerRow > width * bytesPerPixel)
+                && Avx2.IsSupported)
+            {
+                // We don't check FMA support as all AVX2 capable processors also support FMA
+                ComputeFactorsAvx2(factors, xComponents, yComponents, width, height, pixels, bytesPerRow, bytesPerPixel);
+            }
+            else
+            {
+                ComputeFactorsFallback(factors, xComponents, yComponents, width, height, pixels, bytesPerRow, bytesPerPixel);
+            }
+        }
+
+        internal static void ComputeFactorsFallback(
+            Span<float> factors,
+            int xComponents,
+            int yComponents,
+            int width,
+            int height,
+            ReadOnlySpan<byte> pixels,
+            int bytesPerRow,
+            int bytesPerPixel)
+        {
+            ReadOnlySpan<float> lookUp = _sRGBToLinearLookup;
+
+            int totalPixels = width * height;
+            float dcScale = 1f / totalPixels;
+            float acScale = 2f / totalPixels;
+
+            float piDivH = MathF.PI / height;
+            float piDivW = MathF.PI / width;
+            Span<float> cosLookup = stackalloc float[width];
+
+            // pi / width * yC
+            float yCxPiDivH = 0f;
+            for (int yC = 0; yC < yComponents; yC++, yCxPiDivH += piDivH)
+            {
+                // pi / height * xC
+                float xCxPiDivW = 0f;
+                for (int xC = 0; xC < xComponents; xC++, xCxPiDivW += piDivW)
+                {
+                    // Precompute cosine values for every pixel in row
+                    // pi / height * xC * x
+                    float xCoef = 0;
+                    for (int i = 0; i < width; i++, xCoef += xCxPiDivW)
+                    {
+                        cosLookup[i] = MathF.Cos(xCoef);
+                    }
+
+                    float c1 = 0;
+                    float c2 = 0;
+                    float c3 = 0;
+
+                    // pi / width * yC * y
+                    float yCoef = 0;
+                    for (int y = 0, yOffset = 0; y < height; y++, yOffset += bytesPerRow, yCoef += yCxPiDivH)
+                    {
+                        float yBasis = MathF.Cos(yCoef);
+
+                        for (int x = 0, offset = yOffset; x < width; x++, offset += bytesPerPixel)
+                        {
+                            float basis = cosLookup[x] * yBasis;
+                            c1 += basis * lookUp[pixels[offset]];
+                            c2 += basis * lookUp[pixels[offset + 1]];
+                            c3 += basis * lookUp[pixels[offset + 2]];
+                        }
+                    }
+
+                    int factorOffset = 3 * ((yC * xComponents) + xC);
+                    float scale = (xC == 0 && yC == 0) ? dcScale : acScale;
+                    factors[factorOffset] = c1 * scale;
+                    factors[factorOffset + 1] = c2 * scale;
+                    factors[factorOffset + 2] = c3 * scale;
+                }
+            }
+        }
+
+        internal static unsafe void ComputeFactorsAvx2(
+            Span<float> factors,
+            int xComponents,
+            int yComponents,
+            int width,
+            int height,
+            ReadOnlySpan<byte> pixels,
+            int bytesPerRow,
+            int bytesPerPixel)
+        {
+            int totalPixels = width * height;
+            Vector128<float> dcScale = Vector128.Create(1f / totalPixels);
+            Vector128<float> acScale = Vector128.Create(2f / totalPixels);
+
+            Vector128<uint> shift = Vector128.Create(0, 8, 16, 0xffffffff);
+            Vector128<int> mask = Vector128.Create(0xff);
+
+            float piDivH = MathF.PI / height;
+            float piDivW = MathF.PI / width;
+            Span<float> cosLookup = stackalloc float[width];
+
+            fixed (byte* p = pixels)
+            fixed (float* f = factors)
+            fixed (float* lookUp = _sRGBToLinearLookup)
+            {
+                // pi / width * yC
+                float yCxPiDivH = 0f;
+                for (int yC = 0; yC < yComponents; yC++, yCxPiDivH += piDivH)
+                {
+                    // pi / height * xC
+                    float xCxPiDivW = 0f;
+                    for (int xC = 0; xC < xComponents; xC++, xCxPiDivW += piDivW)
+                    {
+                        // Precompute cosine values for every pixel in row
+                        // pi / height * xC * x
+                        float xCoef = 0;
+                        for (int i = 0; i < width; i++, xCoef += xCxPiDivW)
+                        {
+                            cosLookup[i] = MathF.Cos(xCoef);
+                        }
+
+                        Vector128<float> c = Vector128.Create(0f);
+
+                        // pi / width * yC * y
+                        float yCoef = 0;
+                        for (int y = 0, yOffset = 0; y < height; y++, yOffset += bytesPerRow, yCoef += yCxPiDivH)
+                        {
+                            float yBasis = MathF.Cos(yCoef);
+
+                            int * pos = (int *)(p + yOffset);
+                            for (int x = 0; x < width; x++, pos++)
+                            {
+                                Vector128<int> index = Avx2.BroadcastScalarToVector128(pos);
+                                index = Avx2.ShiftRightLogicalVariable(index, shift);
+                                index = Avx.And(index, mask);
+                                Vector128<float> tmp = Avx2.GatherVector128(lookUp, index, sizeof(float));
+                                Vector128<float> basis = Vector128.Create(cosLookup[x] * yBasis);
+
+                                c = Fma.MultiplyAdd(tmp, basis, c);
+                            }
+                        }
+
+                        int factorOffset = 3 * ((yC * xComponents) + xC);
+                        Vector128<float> scale = (xC == 0 && yC == 0) ? dcScale : acScale;
+                        Avx.Store(f + factorOffset, Avx.Multiply(c, scale));
+                    }
+                }
+            }
         }
 
         internal static int LinearTosRGB(float value)
