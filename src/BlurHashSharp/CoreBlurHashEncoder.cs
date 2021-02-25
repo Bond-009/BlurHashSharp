@@ -103,7 +103,7 @@ namespace BlurHashSharp
             int totalComponents = xComponents * yComponents;
             int factorsLen = totalComponents * 3;
 
-            float[] factors = new float[factorsLen + 1];
+            float[] factors = new float[factorsLen + 8];
 
             int bytesPerPixel = pixelFormat switch
             {
