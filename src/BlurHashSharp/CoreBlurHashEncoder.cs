@@ -1,4 +1,5 @@
 using System;
+
 namespace BlurHashSharp
 {
     /// <summary>
@@ -6,7 +7,7 @@ namespace BlurHashSharp
     /// </summary>
     public static class CoreBlurHashEncoder
     {
-        internal static ReadOnlySpan<float> SRGBToLinearLookup => new float[]
+        internal static float[] _sRGBToLinearLookup = new float[]
         {
             0f, 0.000303527f, 0.000607054f, 0.000910581f,
             0.001214108f, 0.001517635f, 0.001821162f, 0.0021246888f,
@@ -110,7 +111,7 @@ namespace BlurHashSharp
                 _ => ThrowPixelFormatArgumentException()
             };
 
-            ReadOnlySpan<float> lookUp = SRGBToLinearLookup;
+            ReadOnlySpan<float> lookUp = _sRGBToLinearLookup;
 
             int totalPixels = width * height;
             float dcScale = 1f / totalPixels;
