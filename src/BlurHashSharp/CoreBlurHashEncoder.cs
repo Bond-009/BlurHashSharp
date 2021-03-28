@@ -235,15 +235,15 @@ namespace BlurHashSharp
 
         internal static int EncodeAC(float r, float g, float b, float maximumValue)
         {
-            int quantR = Math.Clamp((int)MathF.Floor((SignPowF(r / maximumValue, 0.5f) * 9) + 9.5f), 0, 18);
-            int quantG = Math.Clamp((int)MathF.Floor((SignPowF(g / maximumValue, 0.5f) * 9) + 9.5f), 0, 18);
-            int quantB = Math.Clamp((int)MathF.Floor((SignPowF(b / maximumValue, 0.5f) * 9) + 9.5f), 0, 18);
+            int quantR = Math.Clamp((int)MathF.Floor((SignSqrtF(r / maximumValue) * 9) + 9.5f), 0, 18);
+            int quantG = Math.Clamp((int)MathF.Floor((SignSqrtF(g / maximumValue) * 9) + 9.5f), 0, 18);
+            int quantB = Math.Clamp((int)MathF.Floor((SignSqrtF(b / maximumValue) * 9) + 9.5f), 0, 18);
 
             return (19 * 19 * quantR) + (19 * quantG) + quantB;
         }
 
-        internal static float SignPowF(float value, float exp)
-            => MathF.Sign(value) * MathF.Pow(MathF.Abs(value), exp);
+        internal static float SignSqrtF(float value)
+            => MathF.Sign(value) * MathF.Sqrt(MathF.Abs(value));
 
         internal static int EncodeBase83(int value, int length, Span<char> destination)
         {
