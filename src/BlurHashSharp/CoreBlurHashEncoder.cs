@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace BlurHashSharp
 {
@@ -235,9 +236,9 @@ namespace BlurHashSharp
 
         internal static int EncodeAC(float r, float g, float b, float maximumValue)
         {
-            int quantR = Math.Clamp((int)MathF.Floor((SignSqrtF(r / maximumValue) * 9) + 9.5f), 0, 18);
-            int quantG = Math.Clamp((int)MathF.Floor((SignSqrtF(g / maximumValue) * 9) + 9.5f), 0, 18);
-            int quantB = Math.Clamp((int)MathF.Floor((SignSqrtF(b / maximumValue) * 9) + 9.5f), 0, 18);
+            int quantR = Math.Clamp((int)((9 * SignSqrtF(r / maximumValue)) + 9.5f), 0, 18);
+            int quantG = Math.Clamp((int)((9 * SignSqrtF(g / maximumValue)) + 9.5f), 0, 18);
+            int quantB = Math.Clamp((int)((9 * SignSqrtF(b / maximumValue)) + 9.5f), 0, 18);
 
             return (19 * 19 * quantR) + (19 * quantG) + quantB;
         }
