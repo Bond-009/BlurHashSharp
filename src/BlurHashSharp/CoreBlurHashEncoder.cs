@@ -244,7 +244,7 @@ namespace BlurHashSharp
         }
 
         internal static float SignSqrtF(float value)
-            => MathF.Sign(value) * MathF.Sqrt(MathF.Abs(value));
+            => MathF.CopySign(MathF.Sqrt(MathF.Abs(value)), value);
 
         internal static int EncodeBase83(int value, int length, Span<char> destination)
         {
