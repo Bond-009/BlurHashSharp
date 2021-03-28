@@ -10,7 +10,7 @@
 
   <PropertyGroup>
     <Authors>Bond_009</Authors>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <PackageTags>BlurHash;image;bitmap;drawing</PackageTags>
     <Description>BlurHash encoder for use with the System.Drawing.Common image library.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -18,7 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
+    <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
   </ItemGroup>
 
   <ItemGroup>
