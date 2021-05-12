@@ -189,8 +189,7 @@ namespace BlurHashSharp
             int bytesPerRow,
             int bytesPerPixel)
         {
-            if ((bytesPerPixel == 4 || bytesPerRow > width * bytesPerPixel)
-                && Avx2.IsSupported)
+            if (bytesPerPixel == 4 && Avx2.IsSupported)
             {
                 // We don't check FMA support as all AVX2 capable processors also support FMA
                 ComputeFactorsAvx2(factors, xComponents, yComponents, width, height, pixels, bytesPerRow, bytesPerPixel);
@@ -279,12 +278,18 @@ namespace BlurHashSharp
             Vector128<float> dcScale = Vector128.Create(1f / totalPixels);
             Vector128<float> acScale = Vector128.Create(2f / totalPixels);
 
-            Vector128<uint> shift = Vector128.Create(0, 8, 16, 0xffffffff);
-            Vector128<int> mask = Vector128.Create(0xff);
+            Vector256<uint> shift = Vector256.Create(0, 0, 8, 8, 16, 16, 0xffffffff, 0xffffffff);
+            Vector256<int> mask = Vector256.Create(0xff);
+            Vector256<int> unevenMask = Vector256.Create(0xff, 0, 0xff, 0, 0xff, 0, 0, 0);
 
             float piDivH = MathF.PI / height;
             float piDivW = MathF.PI / width;
             Span<float> cosLookup = stackalloc float[width];
+
+            // bool even = width % 2 == 0;
+            // We can do this bc, width is always positive
+            bool even = (width & 0x1) != 1;
+            width &= 0b111111111111111111111111111110;
 
             fixed (byte* p = pixels)
             fixed (float* f = factors)
@@ -306,7 +311,7 @@ namespace BlurHashSharp
                             cosLookup[i] = MathF.Cos(xCoef);
                         }
 
-                        Vector128<float> c = Vector128.Create(0f);
+                        Vector256<float> c = Vector256.Create(0f);
 
                         // pi / width * yC * y
                         float yCoef = 0;
@@ -314,22 +319,37 @@ namespace BlurHashSharp
                         {
                             float yBasis = MathF.Cos(yCoef);
 
-                            int* pos = (int*)((y * bytesPerRow) + p);
-                            for (int x = 0; x < width; x++, pos++)
+                            long* pos = (long*)((y * bytesPerRow) + p);
+                            for (int x = 0; x < width; x += 2, pos++)
                             {
-                                Vector128<int> index = Avx2.BroadcastScalarToVector128(pos);
+                                Vector256<int> index = Avx2.BroadcastScalarToVector256(pos).AsInt32();
                                 index = Avx2.ShiftRightLogicalVariable(index, shift);
-                                index = Avx.And(index, mask);
-                                Vector128<float> tmp = Avx2.GatherVector128(lookUp, index, sizeof(float));
-                                Vector128<float> basis = Vector128.Create(cosLookup[x] * yBasis);
+                                index = Avx2.And(index, mask);
+                                Vector256<float> tmp = Avx2.GatherVector256(lookUp, index, 4);
+                                float basis1 = cosLookup[x] * yBasis;
+                                float basis2 = cosLookup[x + 1] * yBasis;
+                                Vector256<float> basis = Vector256.Create(basis1, basis2, basis1, basis2, basis1, basis2, 0f, 0f);
+
+                                c = Fma.MultiplyAdd(tmp, basis, c);
+                            }
+
+                            if (!even)
+                            {
+                                Vector256<int> index = Avx2.ShiftRightLogicalVariable(Avx2.BroadcastScalarToVector256((int*)pos), shift);
+                                index = Avx2.And(index, unevenMask);
+                                Vector256<float> tmp = Avx2.GatherVector256(lookUp, index, 4);
+                                Vector256<float> basis = Vector256.Create(MathF.Cos(xCoef) * yBasis);
 
                                 c = Fma.MultiplyAdd(tmp, basis, c);
                             }
                         }
 
+                        c = Avx2.HorizontalAdd(c, c.GetUpper().ToVector256());
+                        c = Avx2.Permute4x64(c.AsDouble(), 0b00001000).AsSingle();
+
                         int factorOffset = 3 * ((yC * xComponents) + xC);
                         Vector128<float> scale = (xC == 0 && yC == 0) ? dcScale : acScale;
-                        Avx.Store(f + factorOffset, Avx.Multiply(c, scale));
+                        Avx.Store(f + factorOffset, Avx.Multiply(c.GetLower(), scale));
                     }
                 }
             }

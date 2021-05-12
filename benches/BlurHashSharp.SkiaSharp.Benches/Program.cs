@@ -7,8 +7,8 @@ namespace BlurHashSharp.SkiaSharp.Benches
     {
         public static void Main(string[] args)
         {
-            _ = BenchmarkRunner.Run<EncodeBenches>();
-            /*var t = new EncodeBenches()
+            //_ = BenchmarkRunner.Run<EncodeBenches>();
+            var t = new EncodeBenches()
             {
                 Components = 4,
                 FileName = "samples.ffmpeg.org/image-samples/fujifilm-finepix40i.jpg"
@@ -17,7 +17,7 @@ namespace BlurHashSharp.SkiaSharp.Benches
             for (int i = 0; i < 1000; i++)
             {
                 t.Encode();
-            }*/
+            }
         }
     }
 }
