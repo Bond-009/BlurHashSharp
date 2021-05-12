@@ -310,11 +310,11 @@ namespace BlurHashSharp
 
                         // pi / width * yC * y
                         float yCoef = 0;
-                        for (int y = 0, yOffset = 0; y < height; y++, yOffset += bytesPerRow, yCoef += yCxPiDivH)
+                        for (int y = 0; y < height; y++, yCoef += yCxPiDivH)
                         {
                             float yBasis = MathF.Cos(yCoef);
 
-                            int * pos = (int *)(p + yOffset);
+                            int* pos = (int*)((y * bytesPerRow) + p);
                             for (int x = 0; x < width; x++, pos++)
                             {
                                 Vector128<int> index = Avx2.BroadcastScalarToVector128(pos);
