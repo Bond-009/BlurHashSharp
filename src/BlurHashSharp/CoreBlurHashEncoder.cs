@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.CompilerServices;
 
 namespace BlurHashSharp
 {
@@ -112,6 +111,7 @@ namespace BlurHashSharp
                 _ => ThrowPixelFormatArgumentException()
             };
 
+            Span<float> cosLookup = stackalloc float[width];
             ReadOnlySpan<float> lookUp = _sRGBToLinearLookup;
 
             int totalPixels = width * height;
@@ -129,6 +129,14 @@ namespace BlurHashSharp
                 float xCxPiDivW = 0f;
                 for (int xC = 0; xC < xComponents; xC++, xCxPiDivW += piDivW)
                 {
+                    // Precompute cosine values for every pixel in row
+                    // pi / height * xC * x
+                    float xCoef = 0;
+                    for (int i = 0; i < width; i++, xCoef += xCxPiDivW)
+                    {
+                        cosLookup[i] = MathF.Cos(xCoef);
+                    }
+
                     float c1 = 0;
                     float c2 = 0;
                     float c3 = 0;
@@ -139,11 +147,9 @@ namespace BlurHashSharp
                     {
                         float yBasis = MathF.Cos(yCoef);
 
-                        // pi / height * xC * x
-                        float xCoef = 0;
-                        for (int x = 0, offset = yOffset; x < width; x++, offset += bytesPerPixel, xCoef += xCxPiDivW)
+                        for (int x = 0, offset = yOffset; x < width; x++, offset += bytesPerPixel)
                         {
-                            float basis = MathF.Cos(xCoef) * yBasis;
+                            float basis = cosLookup[x] * yBasis;
                             c1 += basis * lookUp[pixels[offset]];
                             c2 += basis * lookUp[pixels[offset + 1]];
                             c3 += basis * lookUp[pixels[offset + 2]];
