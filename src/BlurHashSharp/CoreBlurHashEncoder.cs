@@ -283,8 +283,12 @@ namespace BlurHashSharp
             Vector128<int> mask = Vector128.Create(0xff);
 
             float piDivH = MathF.PI / height;
+            float* cosYLookup = stackalloc float[height];
+            cosYLookup[0] = 1; // First one is always cos(0)
+
             float piDivW = MathF.PI / width;
-            Span<float> cosLookup = stackalloc float[width];
+            float* cosXLookup = stackalloc float[width];
+            cosXLookup[0] = 1; // First one is always cos(0)
 
             fixed (byte* p = pixels)
             fixed (float* f = factors)
@@ -294,34 +298,39 @@ namespace BlurHashSharp
                 float yCxPiDivH = 0f;
                 for (int yC = 0; yC < yComponents; yC++, yCxPiDivH += piDivH)
                 {
+                    // Precompute cosine values for every pixel in row
+                    // pi / width * yC * y
+                    float yCoef = yCxPiDivH;
+                    for (int i = 1; i < height; i++, yCoef += yCxPiDivH)
+                    {
+                        cosYLookup[i] = MathF.Cos(yCoef);
+                    }
+
                     // pi / height * xC
                     float xCxPiDivW = 0f;
                     for (int xC = 0; xC < xComponents; xC++, xCxPiDivW += piDivW)
                     {
                         // Precompute cosine values for every pixel in row
                         // pi / height * xC * x
-                        float xCoef = 0;
-                        for (int i = 0; i < width; i++, xCoef += xCxPiDivW)
+                        float xCoef = xCxPiDivW;
+                        for (int i = 1; i < width; i++, xCoef += xCxPiDivW)
                         {
-                            cosLookup[i] = MathF.Cos(xCoef);
+                            cosXLookup[i] = MathF.Cos(xCoef);
                         }
 
                         Vector128<float> c = Vector128.Create(0f);
-
-                        // pi / width * yC * y
-                        float yCoef = 0;
-                        for (int y = 0; y < height; y++, yCoef += yCxPiDivH)
+                        for (int y = 0; y < height; y++)
                         {
-                            float yBasis = MathF.Cos(yCoef);
+                            Vector128<float> yBasis = Avx2.BroadcastScalarToVector128(cosYLookup + y);
 
                             int* pos = (int*)((y * bytesPerRow) + p);
-                            for (int x = 0; x < width; x++, pos++)
+                            for (int x = 0; x < width; x++)
                             {
-                                Vector128<int> index = Avx2.BroadcastScalarToVector128(pos);
+                                Vector128<int> index = Avx2.BroadcastScalarToVector128(pos + x);
                                 index = Avx2.ShiftRightLogicalVariable(index, shift);
                                 index = Avx.And(index, mask);
                                 Vector128<float> tmp = Avx2.GatherVector128(lookUp, index, sizeof(float));
-                                Vector128<float> basis = Vector128.Create(cosLookup[x] * yBasis);
+                                Vector128<float> basis = Avx2.Multiply(Avx2.BroadcastScalarToVector128(cosXLookup + x), yBasis);
 
                                 c = Fma.MultiplyAdd(tmp, basis, c);
                             }
