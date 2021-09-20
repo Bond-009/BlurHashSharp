@@ -119,34 +119,30 @@ namespace BlurHashSharp
             float dcScale = 1f / totalPixels;
             float acScale = 2f / totalPixels;
 
-            float piDivH = MathF.PI / height;
-            float piDivW = MathF.PI / width;
-
-            // pi / height * yC
-            float yCxPiDivH = 0f;
-            for (int yC = 0; yC < yComponents; yC++, yCxPiDivH += piDivH)
+            for (int yC = 0; yC < yComponents; yC++)
             {
-                PrecomputeCosines(cosYLookup, height, yCxPiDivH);
+                PrecomputeCosines(cosYLookup, height, MathF.PI * yC / height);
 
-                // pi / width * xC
-                float xCxPiDivW = 0f;
-                for (int xC = 0; xC < xComponents; xC++, xCxPiDivW += piDivW)
+                for (int xC = 0; xC < xComponents; xC++)
                 {
-                    PrecomputeCosines(cosXLookup, width, xCxPiDivW);
+                    PrecomputeCosines(cosXLookup, width, MathF.PI * xC / width);
 
                     float c1 = 0;
                     float c2 = 0;
                     float c3 = 0;
 
-                    for (int y = 0, yOffset = 0; y < height; y++, yOffset += bytesPerRow)
+                    for (int y = 0; y < height; y++)
                     {
                         float yBasis = cosYLookup[y];
-                        for (int x = 0, offset = yOffset; x < width; x++, offset += bytesPerPixel)
+                        int offset = offset = y * bytesPerRow;
+                        for (int x = 0; x < width; x++)
                         {
                             float basis = cosXLookup[x] * yBasis;
                             c1 += basis * sRGBToLinearLookup[pixels[offset]];
                             c2 += basis * sRGBToLinearLookup[pixels[offset + 1]];
                             c3 += basis * sRGBToLinearLookup[pixels[offset + 2]];
+
+                            offset += bytesPerPixel;
                         }
                     }
 
