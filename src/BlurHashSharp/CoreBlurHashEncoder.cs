@@ -111,8 +111,9 @@ namespace BlurHashSharp
                 _ => ThrowPixelFormatArgumentException()
             };
 
-            Span<float> cosLookup = stackalloc float[width];
-            ReadOnlySpan<float> lookUp = _sRGBToLinearLookup;
+            Span<float> cosYLookup = stackalloc float[height];
+            Span<float> cosXLookup = stackalloc float[width];
+            ReadOnlySpan<float> sRGBToLinearLookup = _sRGBToLinearLookup;
 
             int totalPixels = width * height;
             float dcScale = 1f / totalPixels;
@@ -121,38 +122,31 @@ namespace BlurHashSharp
             float piDivH = MathF.PI / height;
             float piDivW = MathF.PI / width;
 
-            // pi / width * yC
+            // pi / height * yC
             float yCxPiDivH = 0f;
             for (int yC = 0; yC < yComponents; yC++, yCxPiDivH += piDivH)
             {
-                // pi / height * xC
+                PrecomputeCosines(cosYLookup, height, yCxPiDivH);
+
+                // pi / width * xC
                 float xCxPiDivW = 0f;
                 for (int xC = 0; xC < xComponents; xC++, xCxPiDivW += piDivW)
                 {
-                    // Precompute cosine values for every pixel in row
-                    // pi / height * xC * x
-                    float xCoef = 0;
-                    for (int i = 0; i < width; i++, xCoef += xCxPiDivW)
-                    {
-                        cosLookup[i] = MathF.Cos(xCoef);
-                    }
+                    PrecomputeCosines(cosXLookup, width, xCxPiDivW);
 
                     float c1 = 0;
                     float c2 = 0;
                     float c3 = 0;
 
-                    // pi / width * yC * y
-                    float yCoef = 0;
-                    for (int y = 0, yOffset = 0; y < height; y++, yOffset += bytesPerRow, yCoef += yCxPiDivH)
+                    for (int y = 0, yOffset = 0; y < height; y++, yOffset += bytesPerRow)
                     {
-                        float yBasis = MathF.Cos(yCoef);
-
+                        float yBasis = cosYLookup[y];
                         for (int x = 0, offset = yOffset; x < width; x++, offset += bytesPerPixel)
                         {
-                            float basis = cosLookup[x] * yBasis;
-                            c1 += basis * lookUp[pixels[offset]];
-                            c2 += basis * lookUp[pixels[offset + 1]];
-                            c3 += basis * lookUp[pixels[offset + 2]];
+                            float basis = cosXLookup[x] * yBasis;
+                            c1 += basis * sRGBToLinearLookup[pixels[offset]];
+                            c2 += basis * sRGBToLinearLookup[pixels[offset + 1]];
+                            c3 += basis * sRGBToLinearLookup[pixels[offset + 2]];
                         }
                     }
 
@@ -217,6 +211,22 @@ namespace BlurHashSharp
                         break;
                 }
             });
+        }
+
+        internal static void PrecomputeCosines(Span<float> table, int count, float offset)
+        {
+            if (offset == 0f)
+            {
+                table.Fill(1f);
+                return;
+            }
+
+            float coef = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                table[i] = MathF.Cos(coef);
+                coef += offset;
+            }
         }
 
         internal static int LinearTosRGB(float value)
