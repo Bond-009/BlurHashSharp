@@ -25,20 +25,19 @@ namespace BlurHashSharp.Tests
         {
             int i = CoreBlurHashEncoder.LinearTosRGB(value);
             var roundtrip = CoreBlurHashEncoder._sRGBToLinearLookup[i];
-            Assert.Equal(value, roundtrip, 9);
+            Assert.Equal((double)value, roundtrip, 9);
         }
 
         [Theory]
         [InlineData(float.Epsilon, float.Epsilon)]
         [InlineData(0f, 0f)]
-        [InlineData(-0f, -0f)]
         [InlineData(1f, 1f)]
         [InlineData(-1f, -1f)]
         [InlineData(3f, 1.732050808f)]
         [InlineData(-3f, -1.732050808f)]
         public void SignSqrtF_Success(float value, float excpected)
         {
-            Assert.Equal(excpected, CoreBlurHashEncoder.SignSqrtF(value), 9);
+            Assert.Equal((double)excpected, CoreBlurHashEncoder.SignSqrtF(value), 9);
         }
     }
 }

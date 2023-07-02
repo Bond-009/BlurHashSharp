@@ -134,7 +134,7 @@ namespace BlurHashSharp
                     for (int y = 0; y < height; y++)
                     {
                         float yBasis = cosYLookup[y];
-                        int offset = offset = y * bytesPerRow;
+                        int offset = y * bytesPerRow;
                         for (int x = 0; x < width; x++)
                         {
                             float basis = cosXLookup[x] * yBasis;
