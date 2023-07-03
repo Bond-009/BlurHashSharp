@@ -1,9 +1,6 @@
 using System;
-using System.Runtime.CompilerServices;
+using System.Buffers;
 using System.Diagnostics;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
-using System.Runtime.Intrinsics.X86;
 
 namespace BlurHashSharp
 {
@@ -105,7 +102,6 @@ namespace BlurHashSharp
 
             int totalComponents = xComponents * yComponents;
             int factorsLen = totalComponents * 3;
-            float[] factors = new float[factorsLen];
 
             int bytesPerPixel = pixelFormat switch
             {
@@ -116,102 +112,112 @@ namespace BlurHashSharp
                 _ => ThrowPixelFormatArgumentException()
             };
 
-            Span<float> cosYLookup = stackalloc float[height];
-            Span<float> cosXLookup = stackalloc float[width];
-            ReadOnlySpan<float> sRGBToLinearLookup = _sRGBToLinearLookup;
-
-            int totalPixels = width * height;
-            float dcScale = 1f / totalPixels;
-            float acScale = 2f / totalPixels;
-
-            for (int yC = 0; yC < yComponents; yC++)
+            float[] rented = ArrayPool<float>.Shared.Rent(factorsLen + height + width);
+            try
             {
-                PrecomputeCosines(cosYLookup, MathF.PI * yC / height);
+                Memory<float> factors = rented.AsMemory(0, factorsLen);
+                Span<float> factorsSpan = factors.Span;
+                Span<float> cosYLookup = rented.AsSpan(factorsLen, height);
+                Span<float> cosXLookup = rented.AsSpan(factorsLen + height, width);
+                ReadOnlySpan<float> sRGBToLinearLookup = _sRGBToLinearLookup;
 
-                for (int xC = 0; xC < xComponents; xC++)
+                int totalPixels = width * height;
+                float dcScale = 1f / totalPixels;
+                float acScale = 2f / totalPixels;
+
+                for (int yC = 0; yC < yComponents; yC++)
                 {
-                    PrecomputeCosines(cosXLookup, MathF.PI * xC / width);
+                    PrecomputeCosines(cosYLookup, MathF.PI * yC / height);
 
-                    float c1 = 0;
-                    float c2 = 0;
-                    float c3 = 0;
-
-                    for (int y = 0; y < height; y++)
+                    for (int xC = 0; xC < xComponents; xC++)
                     {
-                        float yBasis = cosYLookup[y];
-                        int offset = y * bytesPerRow;
-                        for (int x = 0; x < width; x++)
-                        {
-                            float basis = cosXLookup[x] * yBasis;
-                            c1 += basis * sRGBToLinearLookup[pixels[offset]];
-                            c2 += basis * sRGBToLinearLookup[pixels[offset + 1]];
-                            c3 += basis * sRGBToLinearLookup[pixels[offset + 2]];
+                        PrecomputeCosines(cosXLookup, MathF.PI * xC / width);
 
-                            offset += bytesPerPixel;
+                        float c1 = 0;
+                        float c2 = 0;
+                        float c3 = 0;
+
+                        for (int y = 0; y < height; y++)
+                        {
+                            float yBasis = cosYLookup[y];
+                            int offset = y * bytesPerRow;
+                            for (int x = 0; x < width; x++)
+                            {
+                                float basis = cosXLookup[x] * yBasis;
+                                c1 += basis * sRGBToLinearLookup[pixels[offset]];
+                                c2 += basis * sRGBToLinearLookup[pixels[offset + 1]];
+                                c3 += basis * sRGBToLinearLookup[pixels[offset + 2]];
+
+                                offset += bytesPerPixel;
+                            }
                         }
+
+                        int factorOffset = ((yC * xComponents) + xC) * 3;
+                        float scale = (xC == 0 && yC == 0) ? dcScale : acScale;
+                        factorsSpan[factorOffset] = c1 * scale;
+                        factorsSpan[factorOffset + 1] = c2 * scale;
+                        factorsSpan[factorOffset + 2] = c3 * scale;
+                    }
+                }
+
+                int acCount = totalComponents - 1;
+                int hashLen = 1 + 1 + 4 + (acCount * 2);
+
+                return string.Create(
+                    hashLen,
+                    (pixelFormat, acCount),
+                    (hash, state) =>
+                {
+                    ReadOnlySpan<float> dc = factors.Slice(0, 3).Span;
+                    ReadOnlySpan<float> ac = factors.Slice(3).Span;
+                    int acLen = ac.Length;
+
+                    int hashPos = EncodeBase83(xComponents - 1 + ((yComponents - 1) * 9), 1, hash);
+                    float maximumValue;
+                    if (state.acCount > 0)
+                    {
+                        float actualMaximumValue = ac.AbsMax();
+
+                        int quantisedMaximumValue = Math.Clamp((int)((actualMaximumValue * 166f) - 0.5f), 0, 82);
+                        maximumValue = (quantisedMaximumValue + 1) / 166f;
+                        hashPos += EncodeBase83(quantisedMaximumValue, 1, hash.Slice(hashPos));
+                    }
+                    else
+                    {
+                        maximumValue = 1;
+                        hashPos += EncodeBase83(0, 1, hash.Slice(hashPos));
                     }
 
-                    int factorOffset = ((yC * xComponents) + xC) * 3;
-                    float scale = (xC == 0 && yC == 0) ? dcScale : acScale;
-                    factors[factorOffset] = c1 * scale;
-                    factors[factorOffset + 1] = c2 * scale;
-                    factors[factorOffset + 2] = c3 * scale;
-                }
+                    switch (state.pixelFormat)
+                    {
+                        case PixelFormat.BGR888:
+                        case PixelFormat.BGR888x:
+                            hashPos += EncodeBase83(EncodeDC(dc[2], dc[1], dc[0]), 4, hash.Slice(hashPos));
+
+                            for (int i = 0; i < acLen; i += 3)
+                            {
+                                hashPos += EncodeBase83(EncodeAC(ac[i + 2], ac[i + 1], ac[i], maximumValue), 2, hash.Slice(hashPos));
+                            }
+
+                            break;
+
+                        case PixelFormat.RGB888:
+                        case PixelFormat.RGB888x:
+                            hashPos += EncodeBase83(EncodeDC(dc[0], dc[1], dc[2]), 4, hash.Slice(hashPos));
+
+                            for (int i = 0; i < acLen; i += 3)
+                            {
+                                hashPos += EncodeBase83(EncodeAC(ac[i], ac[i + 1], ac[i + 2], maximumValue), 2, hash.Slice(hashPos));
+                            }
+
+                            break;
+                    }
+                });
             }
-
-            int acCount = totalComponents - 1;
-            int hashLen = 1 + 1 + 4 + (acCount * 2);
-
-            return string.Create(
-                hashLen,
-                (pixelFormat, factors, acCount),
-                (hash, state) =>
+            finally
             {
-                ReadOnlySpan<float> dc = factors.AsSpan(0, 3);
-                ReadOnlySpan<float> ac = factors.AsSpan(3);
-                int acLen = ac.Length;
-
-                int hashPos = EncodeBase83(xComponents - 1 + ((yComponents - 1) * 9), 1, hash);
-                float maximumValue;
-                if (state.acCount > 0)
-                {
-                    float actualMaximumValue = ac.AbsMax();
-
-                    int quantisedMaximumValue = Math.Clamp((int)((actualMaximumValue * 166f) - 0.5f), 0, 82);
-                    maximumValue = (quantisedMaximumValue + 1) / 166f;
-                    hashPos += EncodeBase83(quantisedMaximumValue, 1, hash.Slice(hashPos));
-                }
-                else
-                {
-                    maximumValue = 1;
-                    hashPos += EncodeBase83(0, 1, hash.Slice(hashPos));
-                }
-
-                switch (state.pixelFormat)
-                {
-                    case PixelFormat.BGR888:
-                    case PixelFormat.BGR888x:
-                        hashPos += EncodeBase83(EncodeDC(dc[2], dc[1], dc[0]), 4, hash.Slice(hashPos));
-
-                        for (int i = 0; i < acLen; i += 3)
-                        {
-                            hashPos += EncodeBase83(EncodeAC(ac[i + 2], ac[i + 1], ac[i], maximumValue), 2, hash.Slice(hashPos));
-                        }
-
-                        break;
-
-                    case PixelFormat.RGB888:
-                    case PixelFormat.RGB888x:
-                        hashPos += EncodeBase83(EncodeDC(dc[0], dc[1], dc[2]), 4, hash.Slice(hashPos));
-
-                        for (int i = 0; i < acLen; i += 3)
-                        {
-                            hashPos += EncodeBase83(EncodeAC(ac[i], ac[i + 1], ac[i + 2], maximumValue), 2, hash.Slice(hashPos));
-                        }
-
-                        break;
-                }
-            });
+                ArrayPool<float>.Shared.Return(rented);
+            }
         }
 
         internal static void PrecomputeCosines(Span<float> table, float offset)
