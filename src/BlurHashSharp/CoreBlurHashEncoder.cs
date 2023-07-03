@@ -1,4 +1,9 @@
 using System;
+using System.Runtime.CompilerServices;
+using System.Diagnostics;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.X86;
 
 namespace BlurHashSharp
 {
@@ -121,11 +126,11 @@ namespace BlurHashSharp
 
             for (int yC = 0; yC < yComponents; yC++)
             {
-                PrecomputeCosines(cosYLookup, height, MathF.PI * yC / height);
+                PrecomputeCosines(cosYLookup, MathF.PI * yC / height);
 
                 for (int xC = 0; xC < xComponents; xC++)
                 {
-                    PrecomputeCosines(cosXLookup, width, MathF.PI * xC / width);
+                    PrecomputeCosines(cosXLookup, MathF.PI * xC / width);
 
                     float c1 = 0;
                     float c2 = 0;
@@ -209,7 +214,7 @@ namespace BlurHashSharp
             });
         }
 
-        internal static void PrecomputeCosines(Span<float> table, int count, float offset)
+        internal static void PrecomputeCosines(Span<float> table, float offset)
         {
             if (offset == 0f)
             {
@@ -218,7 +223,7 @@ namespace BlurHashSharp
             }
 
             float coef = 0f;
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < table.Length; i++)
             {
                 table[i] = MathF.Cos(coef);
                 coef += offset;
@@ -260,20 +265,19 @@ namespace BlurHashSharp
 
         internal static int EncodeBase83(int value, int length, Span<char> destination)
         {
+            const int Base = 83;
             const string Characters = @"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~";
-            int divisor = 1;
 
-            int i = 0;
-            for (; i < length - 1; i++)
-            {
-                divisor *= 83;
-            }
+            Debug.Assert(Base == Characters.Length);
+            Debug.Assert(length <= destination.Length);
 
-            for (i = 0; i < length; i++)
+            destination[length - 1] = Characters[value % Base];
+
+            int tmpValue = value;
+            for (int i = length - 2; i >= 0; i--)
             {
-                int digit = (value / divisor) % 83;
-                divisor /= 83;
-                destination[i] = Characters[digit];
+                tmpValue /= Base;
+                destination[i] = Characters[tmpValue % Base];
             }
 
             return length;

@@ -1,8 +1,5 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Running;
 
 namespace BlurHashSharp.Benches
 {
@@ -21,9 +18,9 @@ namespace BlurHashSharp.Benches
         }
 
         [Benchmark]
-        public void PrecomputeCosines() => CoreBlurHashEncoder.PrecomputeCosines(_data, N, MathF.PI / N);
+        public void PrecomputeCosines() => CoreBlurHashEncoder.PrecomputeCosines(_data, MathF.PI / N);
 
         [Benchmark]
-        public void PrecomputeCosinesZero() => CoreBlurHashEncoder.PrecomputeCosines(_data, N, 0f);
+        public void PrecomputeCosinesZero() => CoreBlurHashEncoder.PrecomputeCosines(_data, 0f);
     }
 }
