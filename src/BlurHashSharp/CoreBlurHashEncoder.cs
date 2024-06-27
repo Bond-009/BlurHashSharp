@@ -241,11 +241,11 @@ namespace BlurHashSharp
             float v = Math.Clamp(value, 0, 1);
             if (v <= 0.0031308f)
             {
-                return (int)((12.92f * 255 * v) + 0.5f);
+                return (int)((3294.6f * v) + 0.5f);
             }
             else
             {
-                return (int)((((1.055f * MathF.Pow(v, 1 / 2.4f)) - 0.055f) * 255) + 0.5f);
+                return (int)((269.025f * MathF.Pow(v, 1 / 2.4f)) - 13.525f);
             }
         }
 
@@ -271,19 +271,17 @@ namespace BlurHashSharp
 
         internal static int EncodeBase83(int value, int length, Span<char> destination)
         {
-            const int Base = 83;
             const string Characters = @"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~";
 
-            Debug.Assert(Base == Characters.Length);
             Debug.Assert(length <= destination.Length);
 
-            destination[length - 1] = Characters[value % Base];
+            destination[length - 1] = Characters[value % Characters.Length];
 
             int tmpValue = value;
             for (int i = length - 2; i >= 0; i--)
             {
-                tmpValue /= Base;
-                destination[i] = Characters[tmpValue % Base];
+                tmpValue /= Characters.Length;
+                destination[i] = Characters[tmpValue % Characters.Length];
             }
 
             return length;
