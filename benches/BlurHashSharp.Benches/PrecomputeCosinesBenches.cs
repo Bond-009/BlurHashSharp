@@ -18,9 +18,6 @@ namespace BlurHashSharp.Benches
         }
 
         [Benchmark]
-        public void PrecomputeCosines() => CoreBlurHashEncoder.PrecomputeCosines(_data, MathF.PI / N);
-
-        [Benchmark]
-        public void PrecomputeCosinesZero() => CoreBlurHashEncoder.PrecomputeCosines(_data, 0f);
+        public void PrecomputeCosines() => CoreBlurHashEncoder.PrecomputeCosines(_data, 4);
     }
 }

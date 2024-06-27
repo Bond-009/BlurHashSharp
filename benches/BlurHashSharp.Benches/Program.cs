@@ -6,7 +6,7 @@ namespace BlurHashSharp.Benches
     {
         public static void Main(string[] args)
         {
-            _ = BenchmarkRunner.Run<LinearTosRGBBenches>();
+            _ = BenchmarkRunner.Run<PrecomputeCosinesBenches>();
         }
     }
 }

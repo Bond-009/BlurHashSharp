@@ -127,11 +127,11 @@ namespace BlurHashSharp
 
                 for (int yC = 0; yC < yComponents; yC++)
                 {
-                    PrecomputeCosines(cosYLookup, MathF.PI * yC / height);
+                    PrecomputeCosines(cosYLookup, yC);
 
                     for (int xC = 0; xC < xComponents; xC++)
                     {
-                        PrecomputeCosines(cosXLookup, MathF.PI * xC / width);
+                        PrecomputeCosines(cosXLookup, xC);
 
                         float c1 = 0;
                         float c2 = 0;
@@ -220,19 +220,97 @@ namespace BlurHashSharp
             }
         }
 
-        internal static void PrecomputeCosines(Span<float> table, float offset)
+        internal static void PrecomputeCosines(Span<float> table, int c)
         {
-            if (offset == 0f)
+            if (c == 0)
             {
                 table.Fill(1f);
                 return;
             }
 
-            float coef = 0f;
-            for (int i = 0; i < table.Length; i++)
+            var l = table.Length;
+            int gcd = GreatestCommonDivisor(c, l);
+            if (gcd > 1)
             {
-                table[i] = MathF.Cos(coef);
-                coef += offset;
+                int offset = l / gcd;
+                PrecomputeCosines(table[..offset], c / gcd);
+                bool inverse = int.IsOddInteger(c / gcd);
+                if (inverse)
+                {
+                    CopyToHelpers.InverseSignCopyTo(table[..offset], table[offset..]);
+                    offset = 2 * offset;
+                }
+
+                int i = offset;
+                while (i < l)
+                {
+                    int blockSize = int.Min(offset, l - offset);
+                    table[..blockSize].CopyTo(table[i..]);
+                    i += blockSize;
+                    offset += blockSize;
+                }
+            }
+            else
+            {
+                float offset = MathF.PI * c / l;
+                int halfLen = l / 2;
+                for (int i = 0; i < halfLen + 1; i++)
+                {
+                    table[i] = MathF.Cos(i * offset);
+                }
+
+                if (int.IsEvenInteger(c))
+                {
+                    CopyToHelpers.ReverseCopyTo(table[1..^halfLen], table[(halfLen + 1)..]);
+                }
+                else
+                {
+                    CopyToHelpers.ReverseInverseSignCopyTo(table[1..^halfLen], table[(halfLen + 1)..]);
+                }
+            }
+        }
+
+        // Stein's binary GCD algorithm
+        internal static int GreatestCommonDivisor(int n, int m)
+        {
+            Debug.Assert(int.IsPositive(n), "n is negative");
+            Debug.Assert(int.IsPositive(m), "m is negative");
+
+            if (n == 0)
+            {
+                return m;
+            }
+            else if (m == 0)
+            {
+                return n;
+            }
+
+            int k_n = int.TrailingZeroCount(n);
+            int k_m = int.TrailingZeroCount(m);
+            n >>>= k_n;
+            m >>>= k_m;
+            int k = Math.Min(k_n, k_m);
+
+            for (;;)
+            {
+                Debug.Assert(int.IsOddInteger(n), "n is even");
+                Debug.Assert(int.IsOddInteger(m), "m is even");
+
+                if (n > m)
+                {
+                    int tmp = n;
+                    n = m;
+                    m = tmp;
+                }
+
+                m -= n;
+
+                if (m == 0)
+                {
+                    return n << k;
+                }
+
+                m >>= int.TrailingZeroCount(m);
             }
         }
 
