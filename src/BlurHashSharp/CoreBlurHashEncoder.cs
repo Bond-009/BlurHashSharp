@@ -43,8 +43,18 @@ namespace BlurHashSharp
             static int ThrowPixelFormatArgumentException()
                 => throw new ArgumentException("Invalid pixel format.", nameof(pixelFormat));
 
-            int totalComponents = xComponents * yComponents;
-            int factorsLen = totalComponents * 3;
+            static int ThrowComponentArgumentOutOfRangeException(string paramName)
+                => throw new ArgumentOutOfRangeException(paramName, "Invalid number of components.");
+
+            if (xComponents < 1 || xComponents > 9)
+            {
+                ThrowComponentArgumentOutOfRangeException(nameof(xComponents));
+            }
+
+            if (yComponents < 1 || yComponents > 9)
+            {
+                ThrowComponentArgumentOutOfRangeException(nameof(yComponents));
+            }
 
             int bytesPerPixel = pixelFormat switch
             {
@@ -54,6 +64,9 @@ namespace BlurHashSharp
                 PixelFormat.BGR888x => 4,
                 _ => ThrowPixelFormatArgumentException()
             };
+
+            int totalComponents = xComponents * yComponents;
+            int factorsLen = totalComponents * 3;
 
             float[] rented = ArrayPool<float>.Shared.Rent(factorsLen + height + width);
             try
