@@ -11,14 +11,14 @@
   <PropertyGroup>
     <Authors>Bond_009</Authors>
     <Version>1.2.0</Version>
-    <PackageTags>BlurHash;image;bitmap;skiasharp</PackageTags>
-    <Description>BlurHash encoder for use with the SkiaSharp image library.</Description>
+    <PackageTags>BlurHash;image;bitmap;netvips</PackageTags>
+    <Description>BlurHash encoder for use with the NetVips image library.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Bond-009/BlurHashSharp</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SkiaSharp" Version="2.88.6" />
+    <PackageReference Include="NetVips" Version="2.3.1" />
   </ItemGroup>
 
   <ItemGroup>
