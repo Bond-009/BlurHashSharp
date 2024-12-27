@@ -59,29 +59,29 @@ namespace BlurHashSharp.Tests
             Assert.Equal(expected, AbsMaxExtensions.AbsMaxFallback(array));
         }
 
-        [SkippableTheory]
+        [Theory]
         [MemberData(nameof(TestArrays))]
         public void AbsMaxAvx_Valid_AbsMax(float[] array, float expected)
         {
-            Skip.IfNot(Avx.IsSupported);
+            Assert.SkipUnless(Avx.IsSupported, "Test host doesn't support AVX");
 
             Assert.Equal(expected, AbsMaxExtensions.AbsMaxAvx(array));
         }
 
-        [SkippableTheory]
+        [Theory]
         [MemberData(nameof(TestArrays))]
         public void AbsMaxSse_Valid_AbsMax(float[] array, float expected)
         {
-            Skip.IfNot(Sse.IsSupported);
+            Assert.SkipUnless(Sse.IsSupported, "Test host doesn't support SSE");
 
             Assert.Equal(expected, AbsMaxExtensions.AbsMaxSse(array));
         }
 
-        [SkippableTheory]
+        [Theory]
         [MemberData(nameof(TestArrays))]
         public void AbsMaxAdvSimd_Valid_AbsMax(float[] array, float expected)
         {
-            Skip.IfNot(AdvSimd.Arm64.IsSupported);
+            Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "Test host doesn't support NEON");
 
             Assert.Equal(expected, AbsMaxExtensions.AbsMaxAdvSimd64(array));
         }
