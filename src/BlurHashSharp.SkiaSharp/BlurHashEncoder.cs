@@ -44,7 +44,8 @@ namespace BlurHashSharp.SkiaSharp
         /// <returns>BlurHash representation of the image.</returns>
         public static string Encode(int xComponent, int yComponent, string filename)
         {
-            using (SKCodec codec = SKCodec.Create(filename))
+            using var fileStream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using (SKCodec codec = SKCodec.Create(fileStream))
             {
                 var newInfo = new SKImageInfo()
                 {
@@ -73,7 +74,8 @@ namespace BlurHashSharp.SkiaSharp
         /// <returns>BlurHash representation of the image.</returns>
         public static string Encode(int xComponent, int yComponent, string filename, int maxWidth, int maxHeight)
         {
-            using (SKCodec codec = SKCodec.Create(filename))
+            using var fileStream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using (SKCodec codec = SKCodec.Create(fileStream))
             {
                 var width = codec.Info.Width;
                 var height = codec.Info.Height;
