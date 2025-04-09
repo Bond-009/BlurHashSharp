@@ -154,7 +154,6 @@ namespace BlurHashSharp.SkiaSharp.Tests
         [InlineData("samples.ffmpeg.org/image-samples/ART/8257_p_t_477x480_image02.png", 4, 4, "UOJtSIN0Ipi]~q%Lad9FI[xtkBMx%MM{t7xZ")]
         [InlineData("samples.ffmpeg.org/image-samples/ART/8266_p_t_640x480_image01.png", 4, 4, "UPF~:fI801Ri4mxv-;kC00WYs+ozMwayRloe")]
         [InlineData("samples.ffmpeg.org/image-samples/ART/8257_p_t_640x480_image01.png", 4, 4, "UaDJkzD%R+axtSoyWBay00xut6j]M{M_t7kC")]
-
         public void Encode_Success(string relPath, int xComponent, int yComponent, string expectedResult)
         {
             string absPath = Path.Join(Environment.GetEnvironmentVariable("FFMPEG_SAMPLES_PATH"), relPath);

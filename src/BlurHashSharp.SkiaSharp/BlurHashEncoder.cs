@@ -122,7 +122,7 @@ namespace BlurHashSharp.SkiaSharp
 
                 newInfo = newInfo.WithSize(scaledWidth, scaledHeight);
 
-                using (SKBitmap scaledBitmap = bitmap.Resize(newInfo, SKFilterQuality.Low))
+                using (SKBitmap scaledBitmap = bitmap.Resize(newInfo, SKSamplingOptions.Default))
                 {
                     return EncodeInternal(xComponent, yComponent, scaledBitmap);
                 }
