@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace BlurHashSharp.ImageSharp;
 
 /// <summary>
-/// The BlurHash encoder for use with the SkiaSharp image library.
+/// The BlurHash encoder for use with the ImageSharp image library.
 /// </summary>
 public static class BlurHashEncoder
 {
