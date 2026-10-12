@@ -15,9 +15,10 @@ namespace BlurHashSharp.SkiaSharp
         /// <param name="yComponent">The number y components.</param>
         /// <param name="stream">The IO stream of an encoded image.</param>
         /// <returns>BlurHash representation of the image.</returns>
+        /// <exception cref="InvalidDataException">The image is in an unsupported format or could not be decoded.</exception>
         public static string Encode(int xComponent, int yComponent, Stream stream)
         {
-            using (SKCodec codec = SKCodec.Create(stream))
+            using (SKCodec codec = CreateCodec(stream))
             {
                 return Encode(xComponent, yComponent, codec);
             }
@@ -30,9 +31,11 @@ namespace BlurHashSharp.SkiaSharp
         /// <param name="yComponent">The number y components.</param>
         /// <param name="filename">The path to an encoded image on the file system.</param>
         /// <returns>BlurHash representation of the image.</returns>
+        /// <exception cref="FileNotFoundException">The file does not exist.</exception>
+        /// <exception cref="InvalidDataException">The image is in an unsupported format or could not be decoded.</exception>
         public static string Encode(int xComponent, int yComponent, string filename)
         {
-            using (SKCodec codec = SKCodec.Create(filename))
+            using (SKCodec codec = CreateCodec(filename))
             {
                 return Encode(xComponent, yComponent, codec);
             }
@@ -49,7 +52,7 @@ namespace BlurHashSharp.SkiaSharp
                 ColorSpace = SKColorSpace.CreateSrgb()
             };
 
-            using (SKBitmap bitmap = SKBitmap.Decode(codec, newInfo))
+            using (SKBitmap bitmap = DecodeBitmap(codec, newInfo))
             {
                 return EncodeInternal(xComponent, yComponent, bitmap);
             }
@@ -64,9 +67,10 @@ namespace BlurHashSharp.SkiaSharp
         /// <param name="maxWidth">The maximum width to resize the image to.</param>
         /// <param name="maxHeight">The maximum height to resize the image to.</param>
         /// <returns>BlurHash representation of the image.</returns>
+        /// <exception cref="InvalidDataException">The image is in an unsupported format or could not be decoded.</exception>
         public static string Encode(int xComponent, int yComponent, Stream stream, int maxWidth, int maxHeight)
         {
-            using (SKCodec codec = SKCodec.Create(stream))
+            using (SKCodec codec = CreateCodec(stream))
             {
                 return Encode(xComponent, yComponent, codec, maxWidth, maxHeight);
             }
@@ -81,9 +85,11 @@ namespace BlurHashSharp.SkiaSharp
         /// <param name="maxWidth">The maximum width to resize the image to.</param>
         /// <param name="maxHeight">The maximum height to resize the image to.</param>
         /// <returns>BlurHash representation of the image.</returns>
+        /// <exception cref="FileNotFoundException">The file does not exist.</exception>
+        /// <exception cref="InvalidDataException">The image is in an unsupported format or could not be decoded.</exception>
         public static string Encode(int xComponent, int yComponent, string filename, int maxWidth, int maxHeight)
         {
-            using (SKCodec codec = SKCodec.Create(filename))
+            using (SKCodec codec = CreateCodec(filename))
             {
                 return Encode(xComponent, yComponent, codec, maxWidth, maxHeight);
             }
@@ -111,7 +117,7 @@ namespace BlurHashSharp.SkiaSharp
                 ColorSpace = SKColorSpace.CreateSrgb()
             };
 
-            using (SKBitmap bitmap = SKBitmap.Decode(codec, newInfo))
+            using (SKBitmap bitmap = DecodeBitmap(codec, newInfo))
             {
                 if (scaleFactor == 0f)
                 {
@@ -128,6 +134,25 @@ namespace BlurHashSharp.SkiaSharp
                 }
             }
         }
+
+        private static SKCodec CreateCodec(Stream stream)
+            => SKCodec.Create(stream)
+                ?? throw new InvalidDataException("The stream does not contain an image in a format supported by SkiaSharp.");
+
+        private static SKCodec CreateCodec(string filename)
+        {
+            if (!File.Exists(filename))
+            {
+                throw new FileNotFoundException("The image file could not be found.", filename);
+            }
+
+            return SKCodec.Create(filename)
+                ?? throw new InvalidDataException($"The file '{filename}' does not contain an image in a format supported by SkiaSharp.");
+        }
+
+        private static SKBitmap DecodeBitmap(SKCodec codec, SKImageInfo info)
+            => SKBitmap.Decode(codec, info)
+                ?? throw new InvalidDataException("The image could not be decoded; the data is corrupt or truncated.");
 
         internal static string EncodeInternal(int xComponent, int yComponent, SKBitmap bitmap)
             => CoreBlurHashEncoder.Encode(xComponent, yComponent, bitmap.Width, bitmap.Height, bitmap.GetPixelSpan(), bitmap.RowBytes, PixelFormat.RGB888x);
