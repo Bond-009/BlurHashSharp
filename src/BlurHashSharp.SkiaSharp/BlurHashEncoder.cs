@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using SkiaSharp;
 
@@ -91,18 +92,18 @@ namespace BlurHashSharp.SkiaSharp
 
         internal static string Encode(int xComponent, int yComponent, SKCodec codec, int maxWidth, int maxHeight)
         {
+            using (SKBitmap bitmap = DecodeScaled(codec, maxWidth, maxHeight))
+            {
+                return EncodeInternal(xComponent, yComponent, bitmap);
+            }
+        }
+
+        internal static SKBitmap DecodeScaled(SKCodec codec, int maxWidth, int maxHeight)
+        {
             var width = codec.Info.Width;
             var height = codec.Info.Height;
-            float scaleFactor = 0;
-            if (width > maxWidth || height > maxHeight)
-            {
-                scaleFactor = ScaleHelper.GetScale(width, height, maxWidth, maxHeight);
-                SKSizeI supportedScale = codec.GetScaledDimensions(scaleFactor);
-                width = supportedScale.Width;
-                height = supportedScale.Height;
-            }
 
-            var newInfo = new SKImageInfo()
+            var info = new SKImageInfo()
             {
                 Width = width,
                 Height = height,
@@ -111,21 +112,29 @@ namespace BlurHashSharp.SkiaSharp
                 ColorSpace = SKColorSpace.CreateSrgb()
             };
 
-            using (SKBitmap bitmap = SKBitmap.Decode(codec, newInfo))
+            if (width <= maxWidth && height <= maxHeight)
             {
-                if (scaleFactor == 0f)
-                {
-                    return EncodeInternal(xComponent, yComponent, bitmap);
-                }
+                return SKBitmap.Decode(codec, info);
+            }
 
-                var (scaledWidth, scaledHeight) = ScaleHelper.GetScaleDimensions(bitmap.Width, bitmap.Height, scaleFactor);
+            float scaleFactor = ScaleHelper.GetScale(width, height, maxWidth, maxHeight);
 
-                newInfo = newInfo.WithSize(scaledWidth, scaledHeight);
+            // The codec may already shrink the image while decoding, so the target size has to come
+            // from the original dimensions or the image gets scaled down twice.
+            var (targetWidth, targetHeight) = ScaleHelper.GetScaleDimensions(width, height, scaleFactor);
+            targetWidth = Math.Max(targetWidth, 1);
+            targetHeight = Math.Max(targetHeight, 1);
 
-                using (SKBitmap scaledBitmap = bitmap.Resize(newInfo, SKSamplingOptions.Default))
-                {
-                    return EncodeInternal(xComponent, yComponent, scaledBitmap);
-                }
+            SKSizeI supportedScale = codec.GetScaledDimensions(scaleFactor);
+            SKBitmap bitmap = SKBitmap.Decode(codec, info.WithSize(supportedScale.Width, supportedScale.Height));
+            if (bitmap.Width == targetWidth && bitmap.Height == targetHeight)
+            {
+                return bitmap;
+            }
+
+            using (bitmap)
+            {
+                return bitmap.Resize(info.WithSize(targetWidth, targetHeight), SKSamplingOptions.Default);
             }
         }
 
